@@ -18,11 +18,9 @@ void StartServer(uint16_t port)
         udp::socket socket(io_context, udp::endpoint(udp::v4(), port));
         udp::endpoint remote_endpoint;
         // Получаем не только данные, но и endpoint клиента
-        auto size =
-            socket.receive_from(boost::asio::buffer(buffer), remote_endpoint);
+        auto size = socket.receive_from(boost::asio::buffer(buffer), remote_endpoint);
         size_t frames = size / player.GetFrameSize();
-        std::cout << "Received " << size << " bytes, " << frames << " frames"
-                  << std::endl;
+        std::cout << "Received " << size << " bytes, " << frames << " frames" << std::endl;
         player.PlayBuffer(buffer.data(), frames, 1.5s);
         std::cout << "Playing done" << std::endl;
     }
@@ -39,25 +37,19 @@ void StartClient(uint16_t port)
     std::getline(std::cin, str);
 
     Recorder recorder(ma_format_u8, 1);
-    auto rec_result =
-        recorder.Record(max_buffer_size / recorder.GetFrameSize(), 1.5s);
+    auto rec_result = recorder.Record(max_buffer_size / recorder.GetFrameSize(), 1.5s);
     std::cout << "Recording done" << std::endl;
-    std::cout << "recorded: " << rec_result.data.size() << " bytes, "
-              << rec_result.frames << " frames " << std::endl;
+    std::cout << "recorded: " << rec_result.data.size() << " bytes, " << rec_result.frames << " frames " << std::endl;
     //send to server
     try
     {
         boost::asio::io_context io_context;
         udp::socket socket(io_context, udp::v4());
         boost::system::error_code ec;
-        auto endpoint =
-            udp::endpoint(boost::asio::ip::make_address("127.0.0.1", ec), port);
-        auto sentBytes = socket.send_to(
-            boost::asio::buffer(rec_result.data.data(), rec_result.data.size()),
-            endpoint);
+        auto endpoint = udp::endpoint(boost::asio::ip::make_address("127.0.0.1", ec), port);
+        auto sentBytes = socket.send_to(boost::asio::buffer(rec_result.data.data(), rec_result.data.size()), endpoint);
 
-        std::cout << "Record sent (" << sentBytes << " bytes), thank you, bye"
-                  << std::endl;
+        std::cout << "Record sent (" << sentBytes << " bytes), thank you, bye" << std::endl;
     }
     catch (const std::exception& e)
     {
