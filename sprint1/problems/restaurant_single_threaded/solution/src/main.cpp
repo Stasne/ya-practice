@@ -1,13 +1,14 @@
 #ifdef WIN32
 #include <sdkddkver.h>
 #endif
-
+#include <atomic>
 #include <boost/asio.hpp>
 #include <chrono>
 #include <iostream>
 #include <mutex>
 #include <sstream>
 #include <syncstream>
+#include <thread>
 #include <unordered_map>
 
 namespace net = boost::asio;
@@ -86,7 +87,25 @@ std::ostream& operator<<(std::ostream& os, const Hamburger& h)
     return os << "Hamburger: "sv << (h.IsCutletRoasted() ? "roasted cutlet"sv : " raw cutlet"sv)
               << (h.HasOnion() ? ", onion"sv : ""sv) << (h.IsPacked() ? ", packed"sv : ", not packed"sv);
 }
+class ThreadChecker
+{
+   public:
+    explicit ThreadChecker(std::atomic_int& counter) : counter_{counter} {}
 
+    ThreadChecker(const ThreadChecker&) = delete;
+    ThreadChecker& operator=(const ThreadChecker&) = delete;
+
+    ~ThreadChecker()
+    {
+        // assert выстрелит, если между вызовом конструктора и деструктора
+        // значение expected_counter_ изменится
+        assert(expected_counter_ == counter_);
+    }
+
+   private:
+    std::atomic_int& counter_;
+    int expected_counter_ = ++counter_;
+};
 using OrderHandler = std::function<void(sys::error_code ec, int id, Hamburger* hamburger)>;
 class Order : public std::enable_shared_from_this<Order>
 {
@@ -111,16 +130,19 @@ class Order : public std::enable_shared_from_this<Order>
     void RoastCutlet()
     {
         logger_.LogMessage("Start roasting cutlet"sv);
-        roast_timer_.async_wait([self = shared_from_this()](sys::error_code ec) { self->OnRoasted(ec); });
+        roast_timer_.async_wait(
+            net::bind_executor(strand_, [self = shared_from_this()](sys::error_code ec) { self->OnRoasted(ec); }));
     }
 
     void MarinadeOnion()
     {
         logger_.LogMessage("Start marinading onion"sv);
-        marinade_timer_.async_wait([self = shared_from_this()](sys::error_code ec) { self->OnOnionMarinaded(ec); });
+        marinade_timer_.async_wait(net::bind_executor(
+            strand_, [self = shared_from_this()](sys::error_code ec) { self->OnOnionMarinaded(ec); }));
     }
     void OnRoasted(sys::error_code ec)
     {
+        ThreadChecker checker{counter_};
         if (ec)
         {
             logger_.LogMessage("Roast error : "s + ec.what());
@@ -135,6 +157,7 @@ class Order : public std::enable_shared_from_this<Order>
 
     void OnOnionMarinaded(sys::error_code ec)
     {
+        ThreadChecker checker{counter_};
         if (ec)
         {
             logger_.LogMessage("Marinade onion error: "s + ec.what());
@@ -213,6 +236,7 @@ class Order : public std::enable_shared_from_this<Order>
 
    private:
     net::io_context& io_;
+    net::strand<net::io_context::executor_type> strand_{net::make_strand(io_)};
     int id_;
     bool with_onion_;
     bool delivered_;
@@ -220,8 +244,9 @@ class Order : public std::enable_shared_from_this<Order>
     bool onion_marinaded_;
     OrderHandler handler_;
     Logger logger_{std::to_string(id_)};
-    Timer roast_timer_{io_, 1s};
-    Timer marinade_timer_{io_, 2s};
+    Timer roast_timer_{io_, 1ms};
+    Timer marinade_timer_{io_, 1ms};
+    std::atomic_int counter_{0};
 };
 // std::function<void(sys::error_code ec, int id, Hamburger* hamburger)>;
 class Restaurant
@@ -234,7 +259,6 @@ class Restaurant
         const int order_id = ++next_order_id_;
         auto order = std::make_shared<Order>(io_, order_id, with_onion, handler);
         order->Execute();
-        /* Напишите недостающий код */
         return order_id;
     }
 
@@ -242,10 +266,24 @@ class Restaurant
     net::io_context& io_;
     int next_order_id_ = 0;
 };
-
+// Запускает функцию fn на n потоках, включая текущий
+template <typename Fn>
+void RunWorkers(unsigned n, const Fn& fn)
+{
+    n = std::max(1u, n);
+    std::vector<std::jthread> workers;
+    workers.reserve(n - 1);
+    // Запускаем n-1 рабочих потоков, выполняющих функцию fn
+    while (--n)
+    {
+        workers.emplace_back(fn);
+    }
+    fn();
+}
 int main()
 {
-    net::io_context io;
+    const unsigned num_th{4};
+    net::io_context io(num_th);
 
     Restaurant restaurant{io};
 
@@ -265,10 +303,14 @@ int main()
 
     const int id1 = restaurant.MakeHamburger(false, handle_result);
     const int id2 = restaurant.MakeHamburger(true, handle_result);
-
+    // for (int i = 0; i < 7; ++i)
+    // {
+    //     restaurant.MakeHamburger(false, handle_result);
+    //     restaurant.MakeHamburger(true, handle_result);
+    // }
     // До вызова io.run() никакие заказы не выполняются
     assert(orders.empty());
-    io.run();
+    RunWorkers(num_th, [&io] { io.run(); });
 
     // После вызова io.run() все заказы быть выполнены
     assert(orders.size() == 2u);
