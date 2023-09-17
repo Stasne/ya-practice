@@ -33,14 +33,14 @@ class Cafeteria
     void CookHotDog(HotDogHandler handler)
     {
         static std::atomic<size_t> hdid{1};
-        net::defer(
-            io_,
+
+        net::dispatch(  // may be useless. + Getting Bread and sausage have race
+            strand_,
             [this, handler]()
             {
+                size_t id = hdid++;
                 auto bread = store_.GetBread();
                 auto saus = store_.GetSausage();
-
-                size_t id = hdid++;
                 bread->StartBake(*gas_cooker_,
                                  [id, bread, saus, handler, this]
                                  {
