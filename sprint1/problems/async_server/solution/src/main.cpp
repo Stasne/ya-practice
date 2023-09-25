@@ -24,6 +24,7 @@ struct ContentType
 {
     ContentType() = delete;
     constexpr static std::string_view TEXT_HTML = "text/html"sv;
+    constexpr static std::string_view APP_JSON = "application/json"sv;
     // При необходимости внутрь ContentType можно добавить и другие типы контента
 };
 
