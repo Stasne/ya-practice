@@ -63,10 +63,12 @@ public:
     friend void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Road& road)
     {
         boost::json::object obj;
-        obj["x"] = road.GetStart().x;
-        obj["y"] = road.GetStart().y;
-        obj["x1"] = road.GetEnd().x;
-        obj["y1"] = road.GetEnd().y;
+        obj["x0"] = road.GetStart().x;
+        obj["y0"] = road.GetStart().y;
+        if (road.IsHorizontal())
+            obj["x1"] = road.GetEnd().x;
+        else
+            obj["y1"] = road.GetEnd().y;
         jv = std::move(obj);
     }
     friend Road tag_invoke(boost::json::value_to_tag<Road>, const boost::json::value& jv)

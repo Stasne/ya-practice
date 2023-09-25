@@ -27,7 +27,6 @@ public:
     template <typename Body, typename Allocator, typename Send>
     void operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send)
     {
-        std::cout << req.method() << std::endl;
         auto response = makeResponse(req);
         send(response);
         // Обработать запрос request и отправить ответ, используя send
@@ -45,35 +44,62 @@ private:
         response.set(http::field::content_type, content_type);
         response.keep_alive(keep_alive);
 
-        std::cout << req.target() << std::endl;
-        auto& my_map = game_.GetMaps()[0];
-        boost::json::value jv = boost::json::value_from(my_map);
-        std::string serialized_json = boost::json::serialize(jv);
-        response.body() = serialized_json;
-
         auto target = req.target();
         if (boost::starts_with(target, "/api/v1/maps/"))
         {
             // вызываем метод для обработки запросов на маршруты
             // выдать карту конкретную
-            // auto response = handleMapsRequest(req);
-            // send(response);
+            std::string prefix = "/api/v1/maps/";  // smells? (!)
+            auto pos = target.find(prefix);
+
+            model::Map::Id mapId(std::string(target.substr(pos + prefix.length())));
+            const auto* map = game_.FindMap(mapId);
+            if (!map)
+            {
+                // Если нет карты - возвращаем 404
+                status = http::status::not_found;
+                boost::json::object errorBodyj;
+                errorBodyj["code"] = "mapNotFound";
+                errorBodyj["message"] = "Map not found";
+                std::string serialized_json = boost::json::serialize(errorBodyj);
+                response.body() = serialized_json;
+            }
+            else
+            {
+                boost::json::value jv = boost::json::value_from(*map);
+                std::string serialized_json = boost::json::serialize(jv);
+                response.body() = serialized_json;
+            }
         }
         else if (boost::starts_with(target, "/api/v1/maps"))
         {
-            // выдать список карт
-            // вызываем метод для обработки запросов типа /api/second/{id}
-            // auto response = handleSecondRequest(req);
-            // send(response);
+            auto& maps = game_.GetMaps();
+            boost::json::array maplist;
+            for (const auto& map : maps)
+            {
+                boost::json::object mapj;
+                mapj["id"] = *map.GetId();
+                mapj["name"] = map.GetName();
+                maplist.push_back(mapj);
+            }
+            std::string serialized_json = boost::json::serialize(maplist);
+            response.body() = serialized_json;
         }
         else
         {
-            // если начало запроса неизвестно, возвращаем ошибку 404
-            // auto response = makeErrorResponse(http::status::not_found, "Unknown endpoint");
-            // send(response);
+            // если начало запроса неизвестно, возвращаем ошибку 400
+            status = http::status::bad_request;
+            boost::json::object errorBodyj;
+            errorBodyj["code"] = "badRequest";
+            errorBodyj["message"] = "Bad request";
+            std::string serialized_json = boost::json::serialize(errorBodyj);
+            response.body() = serialized_json;
         }
+        response.result(status);
         return response;
     }
+
+private:
     model::Game& game_;
 };
 

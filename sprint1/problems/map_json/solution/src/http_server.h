@@ -74,7 +74,6 @@ private:
 
     void OnRead(beast::error_code ec, [[maybe_unused]] std::size_t bytes_read)
     {
-        std::cout << "READ\n";
         using namespace std::literals;
         if (ec == http::error::end_of_stream)
         {
@@ -183,10 +182,9 @@ private:
     void OnAccept(sys::error_code ec, tcp::socket socket)
     {
         using namespace std::literals;
-        std::cout << "in accept\n";
         if (ec)
         {
-            // return ReportError(ec, "accept"sv);
+            return ReportError(ec, "accept"sv);
         }
 
         // Асинхронно обрабатываем сессию
@@ -194,6 +192,10 @@ private:
 
         // Принимаем новое соединение
         DoAccept();
+    }
+    void ReportError(beast::error_code ec, std::string_view sv)
+    {
+        std::cout << sv << ": " << ec.message() << std::endl;
     }
 
 private:
