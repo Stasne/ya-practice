@@ -42,18 +42,13 @@ public:
     constexpr static VerticalTag VERTICAL{};
 
     Road(HorizontalTag, Point start, Coord end_x) noexcept : start_{start}, end_{end_x, start.y} {}
-
     Road(VerticalTag, Point start, Coord end_y) noexcept : start_{start}, end_{start.x, end_y} {}
 
     bool IsHorizontal() const noexcept { return start_.y == end_.y; }
-
     bool IsVertical() const noexcept { return start_.x == end_.x; }
 
     Point GetStart() const noexcept { return start_; }
-
     Point GetEnd() const noexcept { return end_; }
-    friend void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Road& road);
-    friend Road tag_invoke(boost::json::value_to_tag<Road>, const boost::json::value& jv);
 
 private:
     Point start_;
@@ -65,8 +60,6 @@ public:
     explicit Building(Rectangle bounds) noexcept : bounds_{bounds} {}
 
     const Rectangle& GetBounds() const noexcept { return bounds_; }
-    friend void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Building& building);
-    friend Building tag_invoke(boost::json::value_to_tag<Building>, const boost::json::value& jv);
 
 private:
     Rectangle bounds_;
@@ -81,10 +74,7 @@ public:
     const Id& GetId() const noexcept { return id_; }
 
     Point GetPosition() const noexcept { return position_; }
-
     Offset GetOffset() const noexcept { return offset_; }
-    friend void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Office& office);
-    friend Office tag_invoke(boost::json::value_to_tag<Office>, const boost::json::value& jv);
 
 private:
     Id id_;
@@ -102,23 +92,15 @@ public:
     Map(Id id, std::string name) noexcept : id_(std::move(id)), name_(std::move(name)) {}
 
     const Id& GetId() const noexcept { return id_; }
-
     const std::string& GetName() const noexcept { return name_; }
 
     const Buildings& GetBuildings() const noexcept { return buildings_; }
-
     const Roads& GetRoads() const noexcept { return roads_; }
-
     const Offices& GetOffices() const noexcept { return offices_; }
 
     void AddRoad(const Road& road) { roads_.emplace_back(road); }
-
     void AddBuilding(const Building& building) { buildings_.emplace_back(building); }
-
     void AddOffice(Office office);
-
-    friend void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Map& map);
-    friend Map tag_invoke(boost::json::value_to_tag<Map>, const boost::json::value& jv);
 
 private:
     using OfficeIdToIndex = std::unordered_map<Office::Id, size_t, util::TaggedHasher<Office::Id>>;
@@ -154,5 +136,14 @@ private:
     std::vector<Map> maps_;
     MapIdToIndex map_id_to_index_;
 };
+
+void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Office& office);
+Office tag_invoke(boost::json::value_to_tag<Office>, const boost::json::value& jv);
+void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Map& map);
+Map tag_invoke(boost::json::value_to_tag<Map>, const boost::json::value& jv);
+void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Road& road);
+Road tag_invoke(boost::json::value_to_tag<Road>, const boost::json::value& jv);
+void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Building& building);
+Building tag_invoke(boost::json::value_to_tag<Building>, const boost::json::value& jv);
 
 }  // namespace model
