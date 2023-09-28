@@ -1,11 +1,11 @@
 #pragma once
+#include <tagged.h>
 #include <boost/json.hpp>
 #include <boost/json/value_to.hpp>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "tagged.h"
 
 namespace model {
 

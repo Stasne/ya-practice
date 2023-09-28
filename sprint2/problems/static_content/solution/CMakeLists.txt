@@ -14,9 +14,12 @@ endif()
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-file (GLOB SOURCES 	"src/*.cpp"
+file (GLOB_RECURSE SOURCES 	"src/*.cpp"
 					"src/*.h")
 
 add_executable(${PROJECT_NAME} ${SOURCES})
-
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/utils 
+                                                   ${CMAKE_CURRENT_LIST_DIR}/src/net 
+                                                   ${CMAKE_CURRENT_LIST_DIR}/src/game)
+                                                   message(STATUS "dsadsad ${CMAKE_CURRENT_LIST_DIR}/net ")
 target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
