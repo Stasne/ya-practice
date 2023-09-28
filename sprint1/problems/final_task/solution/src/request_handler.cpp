@@ -51,6 +51,7 @@ void RequestHandler::get_maps_list_handler(const Router::Request& request, Route
         mapj["name"] = map.GetName();
         maplist.push_back(mapj);
     }
+
     std::string serialized_json = boost::json::serialize(maplist);
     response.body() = serialized_json;
 }

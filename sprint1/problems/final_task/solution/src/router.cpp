@@ -17,12 +17,12 @@ void Router::AddRoute([[maybe_unused]] const std::string_view http_method, const
 }
 
 void Router::BadRequest(Response& response, ResponseHandler&& send) const {
-    auto status = http::status::bad_request;
     boost::json::object errorBodyj;
     errorBodyj["code"] = "badRequest";
     errorBodyj["message"] = "Bad request";
     std::string serialized_json = boost::json::serialize(errorBodyj);
     response.body() = serialized_json;
+    response.result(http::status::bad_request);
     send(response);
 }
 }  // namespace http_handler
