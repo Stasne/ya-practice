@@ -11,6 +11,7 @@ static constexpr std::string_view POST{"POST"};
 }  // namespace methods
 
 namespace paths {
+static constexpr std::string_view GetFile{"/"};
 static constexpr std::string_view GetMap{"/api/v1/maps/"};
 static constexpr std::string_view GetMapsList{"/api/v1/maps"};
 }  // namespace paths
@@ -18,6 +19,7 @@ static constexpr std::string_view GetMapsList{"/api/v1/maps"};
 void RequestHandler::SetupRoutes() {
     router_.AddRoute(methods::GET, paths::GetMapsList, bind(&RequestHandler::get_maps_list_handler, this, _1, _2));
     router_.AddRoute(methods::GET, paths::GetMap, bind(&RequestHandler::get_map_handler, this, _1, _2));
+    router_.AddRoute(methods::GET, paths::GetFile, bind(&RequestHandler::get_file_handler, this, _1, _2));
 }
 
 void RequestHandler::get_map_handler(const Router::Request& request, Router::Response& response) const {
@@ -55,5 +57,6 @@ void RequestHandler::get_maps_list_handler(const Router::Request& request, Route
     std::string serialized_json = boost::json::serialize(maplist);
     response.body() = serialized_json;
 }
+void RequestHandler::get_file_handler(const Router::Request& request, Router::Response& response) const {}
 
 }  // namespace http_handler

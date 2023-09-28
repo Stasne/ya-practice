@@ -15,6 +15,7 @@ RUN mkdir /app/build && cd /app/build && \
 # только после этого копируем остальные иходники
 COPY ./src /app/src
 COPY ./data /app/data
+
 COPY CMakeLists.txt /app/
 
 RUN cd /app/build && \
@@ -30,6 +31,7 @@ USER www
 # Скопируем приложение со сборочного контейнера в директорию /app.
 # Не забываем также папку data, она пригодится.
 COPY --from=build /app/build/bin/game_server /app/
+COPY ./static /home/game_server/wwwroot
 COPY ./data /app/data
 # Запускаем игровой сервер
 ENTRYPOINT ["/app/game_server", "/app/data/config.json"] 

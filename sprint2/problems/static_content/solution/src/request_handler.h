@@ -27,6 +27,7 @@ private:
 
     void get_map_handler(const Router::Request& request, Router::Response& response) const;
     void get_maps_list_handler(const Router::Request& request, Router::Response& response) const;
+    void get_file_handler(const Router::Request& request, Router::Response& response) const;
 
 private:
     model::Game& game_;

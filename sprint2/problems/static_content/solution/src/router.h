@@ -23,8 +23,6 @@ public:
     using RequestHandler = std::function<void(const Request&, Response&)>;
     using ResponseHandler = std::function<void(Response&)>;
 
-    void AddRoute(const std::string& path, const RequestHandler& handler) { routes_[path] = handler; }
-
     template <typename Body, typename Allocator, typename Send>
     void Route(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) const {
         auto http_version = req.version();
