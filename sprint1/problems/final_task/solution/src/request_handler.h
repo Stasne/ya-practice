@@ -19,7 +19,7 @@ public:
 
     template <typename Body, typename Allocator, typename Send>
     void operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) {
-        router_.Route(std::move(req), std::move(send));
+        router_.Route(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
     }
 
 private:
