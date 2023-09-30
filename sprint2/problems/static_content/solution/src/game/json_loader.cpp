@@ -6,7 +6,7 @@ using namespace model;
 
 namespace json_loader {
 
-std::string ToString(const std::filesystem::path& json_path) {
+std::string FileToString(const std::filesystem::path& json_path) {
     // .json extension check?
     std::ifstream file(json_path);
     if (!file.is_open()) {
@@ -20,7 +20,8 @@ std::string ToString(const std::filesystem::path& json_path) {
     return buffer.str();
 }
 
-boost::json::value ToJson(const std::string& source_string)  // mb smth instead of const string&? string_view?
+boost::json::value JsonStringToObjec(
+    const std::string& source_string)  // mb smth instead of const string&? string_view?
 {
     boost::json::error_code ec;
     boost::json::value jv = boost::json::parse(source_string, ec);
@@ -39,8 +40,8 @@ void LoadMaps(const boost::json::value& jv, model::Game& game) {
 
 model::Game LoadGame(const std::filesystem::path& json_path) {
 
-    auto file_content = ToString(json_path);
-    auto jv = ToJson(file_content);
+    auto file_content = FileToString(json_path);
+    auto jv = JsonStringToObjec(file_content);
 
     model::Game game;
     LoadMaps(jv, game);

@@ -13,7 +13,7 @@ namespace http_handler {
 void Router::AddRoute([[maybe_unused]] const std::string_view http_method, const std::string_view path,
                       RequestHandler handler) {
     // Ранее хранили как http_method | path, но пока нафиг не надо
-    routes_[path.data()] = std::move(handler);
+    routes_[std::string(path)] = std::move(handler);
 }
 
 void Router::BadRequest(Response& response, ResponseHandler&& send) const {
