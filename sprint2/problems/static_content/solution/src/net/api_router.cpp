@@ -1,4 +1,4 @@
-#include "router.h"
+#include "api_router.h"
 
 #include <boost/beast/core.hpp>
 #include <boost/json.hpp>
@@ -10,13 +10,13 @@ namespace http = boost::beast::http;
 
 namespace http_handler {
 
-void Router::AddRoute([[maybe_unused]] const std::string_view http_method, const std::string_view path,
-                      RequestHandler handler) {
+void ApiRouter::AddRoute([[maybe_unused]] const std::string_view http_method, const std::string_view path,
+                         RequestHandler handler) {
     // Ранее хранили как http_method | path, но пока нафиг не надо
-    routes_[std::string(path)] = std::move(handler);
+    apiRoutes_[std::string(path)] = std::move(handler);
 }
 
-void Router::BadRequest(Response& response, ResponseHandler&& send) const {
+void ApiRouter::BadRequest(Response& response, ResponseHandler&& send) const {
     boost::json::object errorBodyj;
     errorBodyj["code"] = "badRequest";
     errorBodyj["message"] = "Bad request";

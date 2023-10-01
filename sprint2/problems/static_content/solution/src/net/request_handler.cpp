@@ -3,29 +3,28 @@
 
 using namespace std::placeholders;
 using namespace std;
+using namespace std::literals;
 namespace http_handler {
 
 namespace methods {
-static constexpr std::string_view GET{"GET"};
-static constexpr std::string_view POST{"POST"};
+static constexpr std::string_view GET{"GET"sv};
+static constexpr std::string_view POST{"POST"sv};
 }  // namespace methods
 
 namespace paths {
-static constexpr std::string_view GetFile{"/"};
-static constexpr std::string_view GetMap{"/api/v1/maps/"};
-static constexpr std::string_view GetMapsList{"/api/v1/maps"};
+static constexpr std::string_view GetMap{"/api/v1/maps/"sv};
+static constexpr std::string_view GetMapsList{"/api/v1/maps"sv};
 }  // namespace paths
 
 void RequestHandler::SetupRoutes() {
-    router_.AddRoute(methods::GET, paths::GetMapsList, bind(&RequestHandler::get_maps_list_handler, this, _1, _2));
-    router_.AddRoute(methods::GET, paths::GetMap, bind(&RequestHandler::get_map_handler, this, _1, _2));
-    router_.AddRoute(methods::GET, paths::GetFile, bind(&RequestHandler::get_file_handler, this, _1, _2));
+    apiRouter_.AddRoute(methods::GET, paths::GetMapsList, bind(&RequestHandler::get_maps_list_handler, this, _1, _2));
+    apiRouter_.AddRoute(methods::GET, paths::GetMap, bind(&RequestHandler::get_map_handler, this, _1, _2));
 }
 
-void RequestHandler::get_map_handler(const Router::Request& request, Router::Response& response) const {
+void RequestHandler::get_map_handler(const ApiRouter::Request& request, ApiRouter::Response& response) const {
 
     auto status = http::status::ok;
-    auto pos = request.target().find(paths::GetMap);
+    auto pos = request.target().find(std::string(paths::GetMap));
 
     model::Map::Id mapId(std::string(request.target().substr(pos + paths::GetMap.length())));
     const auto* map = game_.FindMap(mapId);
@@ -44,7 +43,7 @@ void RequestHandler::get_map_handler(const Router::Request& request, Router::Res
     }
     response.result(status);
 }
-void RequestHandler::get_maps_list_handler(const Router::Request& request, Router::Response& response) const {
+void RequestHandler::get_maps_list_handler(const ApiRouter::Request& request, ApiRouter::Response& response) const {
     auto& maps = game_.GetMaps();
     boost::json::array maplist;
     for (const auto& map : maps) {
@@ -57,6 +56,5 @@ void RequestHandler::get_maps_list_handler(const Router::Request& request, Route
     std::string serialized_json = boost::json::serialize(maplist);
     response.body() = serialized_json;
 }
-void RequestHandler::get_file_handler(const Router::Request& request, Router::Response& response) const {}
 
 }  // namespace http_handler

@@ -1,22 +1,15 @@
 #pragma once
 
+#include <basic_entities.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/http/dynamic_body.hpp>
-
 #include <map>
 
 namespace http_handler {
 namespace http = boost::beast::http;
 
-struct ContentType {
-    ContentType() = delete;  // TODO: why not simple namespace
-    static constexpr std::string_view TEXT_HTML{"text/html"};
-    static constexpr std::string_view APP_JSON{"application/json"};
-    // При необходимости внутрь ContentType можно добавить и другие типы контента
-};
-
-class Router {
+class ApiRouter {
 public:
     using Response = http::response<http::string_body>;
     using Request = http::request<http::string_body>;
@@ -35,8 +28,8 @@ public:
         response.set(http::field::content_type, content_type);
         response.keep_alive(keep_alive);
 
-        auto it = routes_.rbegin();
-        for (it; it != routes_.rend(); ++it) {
+        auto it = apiRoutes_.rbegin();
+        for (it; it != apiRoutes_.rend(); ++it) {
             if (boost::starts_with(req.target(), it->first)) {
                 it->second(req, response);
                 return send(response);
@@ -54,7 +47,7 @@ private:
     void BadRequest(Response& response, ResponseHandler&& send) const;
 
 private:
-    std::map<std::string, RequestHandler> routes_;
+    std::map<std::string, RequestHandler> apiRoutes_;
 };
 
 }  // namespace http_handler
