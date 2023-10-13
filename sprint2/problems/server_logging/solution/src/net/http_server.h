@@ -40,6 +40,7 @@ protected:
                               self->OnWrite(safe_response->need_eof(), ec, bytes_written);
                           });
     }
+    const boost::asio::ip::tcp::socket& socket() const { return stream_.socket(); }
 
 private:
     void OnWrite(bool close, beast::error_code ec, [[maybe_unused]] std::size_t bytes_written) {
@@ -108,7 +109,7 @@ private:
         // Захватываем умный указатель на текущий объект Session в лямбде,
         // чтобы продлить время жизни сессии до вызова лямбды.
         // Используется generic-лямбда функция, способная принять response произвольного типа
-        request_handler_(stream_.socket(), std::move(request),
+        request_handler_(socket(), std::move(request),
                          [self = this->shared_from_this()](auto&& response) { self->Write(std::move(response)); });
     }
 
