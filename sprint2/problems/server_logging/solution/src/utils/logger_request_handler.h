@@ -6,6 +6,10 @@
 #include <boost/beast/http.hpp>
 namespace http = boost::beast::http;
 using Response = http::response<http::string_body>;
+// Класс созданный как тренировка псевдо-декоратора
+// чтоб отделить логгирование от функционала реквест хэндлера
+// мне показалось это чрезмерным/надуманным в данном случае
+// остальное логгирование будет внутри сорцов
 
 template <typename ReqHandler>
 class LoggingRequestHandler {
@@ -35,6 +39,7 @@ public:
                                         {"method", req.method_string()},
                                         {"content_type", content_type}};
         BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, response_log) << "response sent";
+
         return response;
     }
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <logger.h>
 #include <sdk.h>
 // boost.beast будет использовать std::string_view вместо boost::string_view
 #define BOOST_BEAST_USE_STD_STRING_VIEW
@@ -84,7 +85,8 @@ private:
         stream_.socket().shutdown(tcp::socket::shutdown_send, ec);
     }
     void ReportError(beast::error_code ec, std::string_view sv) {
-        std::cout << sv << ": " << ec.message() << std::endl;
+        boost::json::value json{{"code", ec.value()}, {"text", ec.message()}, {"where", std::string(sv)}};
+        BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, json) << "error";
     }
     // Обработку запроса делегируем подклассу
     virtual void HandleRequest(HttpRequest&& request) = 0;
@@ -174,7 +176,9 @@ private:
         DoAccept();
     }
     void ReportError(beast::error_code ec, std::string_view sv) {
-        std::cout << sv << ": " << ec.message() << std::endl;
+        boost::json::value json{{"code", ec.value()}, {"text", ec.message()}, {"where", std::string(sv)}};
+
+        BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, json) << "error";
     }
 
 private:
