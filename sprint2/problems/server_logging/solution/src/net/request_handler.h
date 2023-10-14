@@ -22,11 +22,11 @@ public:
     RequestHandler& operator=(const RequestHandler&) = delete;
 
     template <typename Body, typename Allocator, typename Send>
-    Response operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) {
+    void operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) {
         if (boost::starts_with(req.target(), "/api"))  //api request
-            return apiRouter_.Route(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
+            apiRouter_.Route(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
         else  // file request
-            return files_.FileRequestResponse(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
+            files_.FileRequestResponse(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
     }
 
 private:

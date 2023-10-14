@@ -75,9 +75,12 @@ int main(int argc, const char* argv[]) {
 
         // 6. Запускаем обработку асинхронных операций
         RunWorkers(std::max(1u, num_threads), [&ioc] { ioc.run(); });
+        boost::json::value finish_data{{"code", 0}};
+        BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, finish_data) << "server exited"sv;
 
     } catch (const std::exception& ex) {
-        std::cerr << ex.what() << std::endl;
+        boost::json::value exception_data{{"code", EXIT_FAILURE}, {"exception", ex.what()}};
+        BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, exception_data) << "server exited"sv;
         return EXIT_FAILURE;
     }
 }

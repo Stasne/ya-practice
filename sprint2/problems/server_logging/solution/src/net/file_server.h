@@ -14,7 +14,7 @@ class FileServer {
 public:
     FileServer(const std::filesystem::path& root);
     template <typename Body, typename Allocator, typename Send>
-    Response FileRequestResponse(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) const {
+    void FileRequestResponse(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) const {
         auto http_version = req.version();
         auto keep_alive = req.keep_alive();
         auto status = http::status::ok;
@@ -23,7 +23,6 @@ public:
 
         FillFileResponse(std::string(req.target()), response);
         send(response);
-        return response;
     }
 
 private:

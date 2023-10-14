@@ -27,7 +27,7 @@ void Logger::init(std::filesystem::path path) {
     logging::core::get()->set_filter(logging::trivial::severity >= logging::trivial::info);
     logging::add_common_attributes();
     // Создаем имя файла с использованием указанного пути
-    std::string filename = path.filename().string() + "_%N.log";
+    std::string filename = "/tmp/" + path.filename().string() + "_%N.log";
     logging::add_file_log(keywords::file_name = filename, keywords::format = &MyFormatter,
                           keywords::open_mode = std::ios_base::app | std::ios_base::out,
                           // ротируем по достижению размера 10 мегабайт
