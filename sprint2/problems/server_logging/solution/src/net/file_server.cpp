@@ -29,13 +29,20 @@ files::FileServer::FileServer(const fs::path& root) : rootPath_(root) {
 }
 
 void files::FileServer::FillFileResponse(const fs::path& file_path, http::response<http::string_body>& response) const {
-    std::filesystem::path full_path = rootPath_;
+
+    fs::path full_path = rootPath_;
     full_path += file_path;
-
-    if ((full_path == rootPath_))  // index.html as default page
-        full_path += DefaultPage;
-
-    if (!fs::exists(full_path)) {
+    if (fs::is_directory(full_path)) {
+        // Проверяем, существует ли файл index.htm или index.html
+        fs::path index_htm_path = full_path / "index.htm";
+        fs::path index_html_path = full_path / "index.html";
+        if (fs::exists(index_htm_path)) {
+            full_path /= index_htm_path;
+        } else if (fs::exists(index_html_path)) {
+            full_path /= index_html_path;
+        }
+    }
+    if (!fs::exists(full_path) || fs::is_directory(full_path)) {
         response.result(http::status::not_found);
         response.set(http::field::content_type, ContentType::TEXT_PLAIN);
         response.body() = "File Not found";
