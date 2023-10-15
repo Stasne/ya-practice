@@ -35,5 +35,5 @@ void Logger::init(std::filesystem::path path) {
                           // ротируем ежедневно в полдень
                           keywords::time_based_rotation = sinks::file::rotation_at_time_point(12, 0, 0));
 
-    logging::add_console_log(std::clog, keywords::format = &MyFormatter, keywords::auto_flush = true);
+    logging::add_console_log(std::cout, keywords::format = &MyFormatter, keywords::auto_flush = true);
 }

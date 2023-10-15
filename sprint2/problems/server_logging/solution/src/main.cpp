@@ -53,8 +53,9 @@ int main(int argc, const char* argv[]) {
         net::signal_set signals(ioc, SIGINT, SIGTERM);
         signals.async_wait([&ioc](const sys::error_code& ec, [[maybe_unused]] int signal_number) {
             if (!ec) {
-                std::cout << "Пользователь завершил выполнение программы\n";
                 ioc.stop();
+                boost::json::value finish_data{{"code", 0}};
+                BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, finish_data) << "server exited"sv;
             }
         });
         // 4. Создаём обработчик HTTP-запросов и связываем его с моделью игры
