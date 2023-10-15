@@ -16,13 +16,12 @@ void ApiRouter::AddRoute([[maybe_unused]] const std::string_view http_method, co
     apiRoutes_[std::string(path)] = std::move(handler);
 }
 
-void ApiRouter::BadRequest(Response& response, ResponseHandler&& send) const {
+void ApiRouter::MakeBadRequest(Response& response) const {
     boost::json::object errorBodyj;
     errorBodyj["code"] = "badRequest";
     errorBodyj["message"] = "Bad request";
     std::string serialized_json = boost::json::serialize(errorBodyj);
     response.body() = serialized_json;
     response.result(http::status::bad_request);
-    send(response);
 }
 }  // namespace http_handler

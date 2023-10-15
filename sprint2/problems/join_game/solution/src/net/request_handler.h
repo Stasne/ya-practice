@@ -1,4 +1,5 @@
 #pragma once
+#include <basic_entities.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/json.hpp>
 #include <string_view>
@@ -23,10 +24,10 @@ public:
 
     template <typename Body, typename Allocator, typename Send>
     void operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) {
-        if (boost::starts_with(req.target(), "/api"))  //api request
-            apiRouter_.Route(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
+        if (boost::starts_with(req.target(), Endpoint::API))  //api request
+            send(std::move(apiRouter_.Route(std::forward<decltype(req)>(req))));
         else  // file request
-            files_.FileRequestResponse(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
+            send(std::move(files_.FileRequestResponse(std::forward<decltype(req)>(req))));
     }
 
 private:

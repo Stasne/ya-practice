@@ -16,8 +16,8 @@ public:
     using RequestHandler = std::function<void(const Request&, Response&)>;
     using ResponseHandler = std::function<void(Response&)>;
 
-    template <typename Body, typename Allocator, typename Send>
-    void Route(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) const {
+    template <typename Body, typename Allocator>
+    auto Route(http::request<Body, http::basic_fields<Allocator>>&& req) const {
         auto http_version = req.version();
         auto keep_alive = req.keep_alive();
         auto content_type = std::string(ContentType::APP_JSON);
@@ -32,19 +32,20 @@ public:
         for (it; it != apiRoutes_.rend(); ++it) {
             if (boost::starts_with(req.target(), it->first)) {
                 it->second(req, response);
-                return send(response);
+                return response;
             }
         }
 
         // if no such method exists
-        BadRequest(response, std::move(send));
+        MakeBadRequest(response);
+        return response;
     }
 
     void AddRoute([[maybe_unused]] const std::string_view http_method, const std::string_view path,
                   RequestHandler handler);
 
 private:
-    void BadRequest(Response& response, ResponseHandler&& send) const;
+    void MakeBadRequest(Response& response) const;
 
 private:
     std::map<std::string, RequestHandler> apiRoutes_;
