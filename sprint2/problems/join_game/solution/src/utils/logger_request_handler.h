@@ -5,7 +5,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/http.hpp>
 namespace http = boost::beast::http;
-using Response = http::response<http::string_body>;
+
 // Класс созданный как тренировка псевдо-декоратора
 // чтоб отделить логгирование от функционала реквест хэндлера
 // мне показалось это чрезмерным/надуманным в данном случае
@@ -22,7 +22,7 @@ public:
         // timestamp 1
         utils::Timer t;
         boost::json::value request_log{{"ip", socket.remote_endpoint().address().to_string()},
-                                       {"URI", req.target().to_string()},
+                                       {"URI", req.target()},
                                        {"method", req.method_string()}};
         BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, request_log) << "request received";
         boost::json::object jResponseObj;
@@ -32,7 +32,7 @@ public:
             auto responseTime = t.Stop();
             std::string content_type{};
             if (!response[http::field::content_type].empty()) {
-                content_type = response[http::field::content_type].to_string();
+                content_type = response[http::field::content_type];
             } else {
                 content_type = "No Content Type field present";
             }

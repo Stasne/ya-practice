@@ -15,7 +15,7 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/utils 
                                                    ${CMAKE_CURRENT_LIST_DIR}/src/net 
                                                    ${CMAKE_CURRENT_LIST_DIR}/src/game)
-                                                   message(STATUS "dsadsad ${CMAKE_CURRENT_LIST_DIR}/net ")
+
 
 target_include_directories(${PROJECT_NAME} PRIVATE CONAN_PKG::boost)
 target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads

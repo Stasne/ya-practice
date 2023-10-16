@@ -2,6 +2,7 @@
 #include <json_loader.h>
 #include <logger.h>
 #include <logger_request_handler.h>
+#include <magic_defs.h>
 #include <request_handler.h>
 #include <sdk.h>
 #include <boost/asio/io_context.hpp>
@@ -54,18 +55,17 @@ int main(int argc, const char* argv[]) {
         signals.async_wait([&ioc](const sys::error_code& ec, [[maybe_unused]] int signal_number) {
             if (!ec) {
                 ioc.stop();
-                boost::json::value finish_data{{"code", 0}};
-                BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, finish_data) << "server exited"sv;
             }
         });
         // 4. Создаём обработчик HTTP-запросов и связываем его с моделью игры
-
-        http_handler::RequestHandler handler{game, fileserver};
+        // strand для выполнения запросов к API
+        // auto api_strand = net::make_strand(ioc);
+        http_handler::RequestHandler handler(game, fileserver);  //, api_strand);
         LoggingRequestHandler<http_handler::RequestHandler> handler_logged(handler);
 
         // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
-        const auto address = net::ip::make_address("0.0.0.0");
-        const uint32_t uport = 8080;
+        const auto address = net::ip::make_address(ServerParam::ADDR);
+        const uint32_t uport = ServerParam::PORT;
         constexpr net::ip::port_type port = uport;
         http_server::ServeHttp(ioc, {address, port}, [&handler_logged](auto&& socket, auto&& req, auto&& send) {
             handler_logged(std::forward<decltype(socket)>(socket), std::forward<decltype(req)>(req),

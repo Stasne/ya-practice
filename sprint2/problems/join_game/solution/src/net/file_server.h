@@ -1,13 +1,13 @@
 #pragma once
+#include <magic_defs.h>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <filesystem>
-
+#include "response_m.h"
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace fs = std::filesystem;
 
-using Response = http::response<http::string_body>;
 using Request = http::request<http::string_body>;
 namespace files {
 class FileServer {
@@ -15,20 +15,34 @@ public:
     FileServer(const std::filesystem::path& root);
     template <typename Body, typename Allocator>
     auto FileRequestResponse(http::request<Body, http::basic_fields<Allocator>>&& req) const {
-        auto http_version = req.version();
-        auto keep_alive = req.keep_alive();
-        auto status = http::status::ok;
-        Response response(status, http_version);
-        response.keep_alive(keep_alive);
+        fs::path full_path = rootPath_;
+        full_path += std::string(req.target());
+        if (fs::is_directory(full_path)) {
+            // Проверяем, существует ли файл index.htm или index.html
+            fs::path index_htm_path = full_path / "index.htm";
+            fs::path index_html_path = full_path / "index.html";
+            if (fs::exists(index_htm_path)) {
+                full_path /= index_htm_path;
+            } else if (fs::exists(index_html_path)) {
+                full_path /= index_html_path;
+            }
+        }
+        if (!fs::exists(full_path) || fs::is_directory(full_path)) {
+            return http_handler::Response::MakeJSON(http::status::not_found, ErrorMessage::FILE_404,
+                                                    http_handler::Response::ContentType::PLAIN_TEXT);
+        }
 
-        FillFileResponse(std::string(req.target()), response);
-        return response;
+        std::ifstream file(full_path.string(), std::ios::binary);
+        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        auto mime_type = FileMimeType(full_path);
+        return http_handler::Response::Make(http::status::ok, content, mime_type);
     }
 
 private:
-    void FillFileResponse(const fs::path& file_path, http::response<http::string_body>& response) const;
+    void FillFileResponse(const fs::path& file_path, http_handler::StringResponse& response) const;
+    std::string FileMimeType(fs::path file) const;
 
 private:
-    const std::filesystem::path rootPath_;
+    const fs::path rootPath_;
 };
 }  //namespace files

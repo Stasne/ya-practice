@@ -1,6 +1,7 @@
 #include "request_handler.h"
+#include <magic_defs.h>
+#include <response_m.h>
 #include <functional>
-
 using namespace std::placeholders;
 using namespace std;
 using namespace std::literals;
@@ -11,39 +12,39 @@ static constexpr std::string_view GET{"GET"sv};
 static constexpr std::string_view POST{"POST"sv};
 }  // namespace methods
 
-namespace paths {
-static constexpr std::string_view GetMap{"/api/v1/maps/"sv};
-static constexpr std::string_view GetMapsList{"/api/v1/maps"sv};
-}  // namespace paths
-
 void RequestHandler::SetupRoutes() {
-    apiRouter_.AddRoute(methods::GET, paths::GetMapsList, bind(&RequestHandler::get_maps_list_handler, this, _1, _2));
-    apiRouter_.AddRoute(methods::GET, paths::GetMap, bind(&RequestHandler::get_map_handler, this, _1, _2));
+    apiRouter_.AddRoute(Endpoint::MAPS_LIST)
+        .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
+                           MiscMessage::ALLOWED_GET_HEAD_METHOD)
+        .SetProcessFunction(bind(&RequestHandler::get_maps_list_handler, this, _1));
+
+    apiRouter_.AddRoute(Endpoint::MAP)
+        .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
+                           MiscMessage::ALLOWED_GET_HEAD_METHOD)
+        .SetProcessFunction(bind(&RequestHandler::get_map_handler, this, _1));
 }
 
-void RequestHandler::get_map_handler(const ApiRouter::Request& request, ApiRouter::Response& response) const {
+StringResponse RequestHandler::get_map_handler(const ApiRouter::Request&& request) const {
 
     auto status = http::status::ok;
-    auto pos = request.target().find(std::string(paths::GetMap));
+    auto target = request.target();
+    auto pos = request.target().find(Endpoint::MAP);
 
-    model::Map::Id mapId(std::string(request.target().substr(pos + paths::GetMap.length())));
+    model::Map::Id mapId(std::string(request.target().substr(pos + Endpoint::MAP.length())));
     const auto* map = game_.FindMap(mapId);
     if (!map) {
         // Если нет карты - возвращаем 404
-        status = http::status::not_found;
-        boost::json::object errorBodyj;
-        errorBodyj["code"] = "mapNotFound";
-        errorBodyj["message"] = "Map not found";
-        std::string serialized_json = boost::json::serialize(errorBodyj);
-        response.body() = serialized_json;
-    } else {
-        boost::json::value jv = boost::json::value_from(*map);
-        std::string serialized_json = boost::json::serialize(jv);
-        response.body() = serialized_json;
+        return Response::MakeJSON(http::status::not_found, ErrorCode::FILE_404, ErrorMessage::FILE_404);
     }
-    response.result(status);
+
+    boost::json::value jv = boost::json::value_from(*map);
+    std::string serialized_json = boost::json::serialize(jv);
+
+    auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
+    return Response::Make(http::status::ok, serialized_json, content_type);
 }
-void RequestHandler::get_maps_list_handler(const ApiRouter::Request& request, ApiRouter::Response& response) const {
+StringResponse RequestHandler::get_maps_list_handler(const ApiRouter::Request&& request) const {
+    auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
     auto& maps = game_.GetMaps();
     boost::json::array maplist;
     for (const auto& map : maps) {
@@ -52,9 +53,8 @@ void RequestHandler::get_maps_list_handler(const ApiRouter::Request& request, Ap
         mapj["name"] = map.GetName();
         maplist.push_back(mapj);
     }
-
     std::string serialized_json = boost::json::serialize(maplist);
-    response.body() = serialized_json;
+    return Response::Make(http::status::ok, serialized_json, content_type);
 }
 
 }  // namespace http_handler
