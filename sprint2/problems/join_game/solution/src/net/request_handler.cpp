@@ -22,6 +22,17 @@ void RequestHandler::SetupRoutes() {
         .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
                            MiscMessage::ALLOWED_GET_HEAD_METHOD)
         .SetProcessFunction(bind(&RequestHandler::get_map_handler, this, _1));
+
+    apiRouter_.AddRoute(Endpoint::JOIN_GAME)
+        .SetContentType(Response::ContentType::TEXT_JSON, "Wrong content type"sv)
+        .SetAllowedMethods({http::verb::post}, "Method not allowed"sv, MiscMessage::ALLOWED_POST_METHOD)
+        .SetProcessFunction(bind(&RequestHandler::post_join_game, this, _1));
+
+    apiRouter_.AddRoute(Endpoint::PLAYERS_LIST)
+        .SetNeedAuthorization(true)
+        .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
+                           MiscMessage::ALLOWED_GET_HEAD_METHOD)
+        .SetProcessFunction(bind(&RequestHandler::get_players, this, _1));
 }
 
 StringResponse RequestHandler::get_map_handler(const ApiRouter::Request&& request) const {
@@ -57,4 +68,13 @@ StringResponse RequestHandler::get_maps_list_handler(const ApiRouter::Request&& 
     return Response::Make(http::status::ok, serialized_json, content_type);
 }
 
+StringResponse RequestHandler::post_join_game(const ApiRouter::Request&& request) const {
+    auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
+    return Response::Make(http::status::ok, "join game", content_type);
+}
+
+StringResponse RequestHandler::get_players(const ApiRouter::Request&& request) const {
+    auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
+    return Response::Make(http::status::ok, "serialized_json", content_type);
+}
 }  // namespace http_handler

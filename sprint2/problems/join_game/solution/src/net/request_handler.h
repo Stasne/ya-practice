@@ -54,6 +54,8 @@ private:
 
     StringResponse get_map_handler(const ApiRouter::Request&& request) const;
     StringResponse get_maps_list_handler(const ApiRouter::Request&& request) const;
+    StringResponse post_join_game(const ApiRouter::Request&& request) const;
+    StringResponse get_players(const ApiRouter::Request&& request) const;
 
 private:
     model::Game& game_;

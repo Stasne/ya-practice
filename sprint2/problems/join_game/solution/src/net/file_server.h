@@ -39,7 +39,6 @@ public:
     }
 
 private:
-    void FillFileResponse(const fs::path& file_path, http_handler::StringResponse& response) const;
     std::string FileMimeType(fs::path file) const;
 
 private:
