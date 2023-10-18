@@ -1,0 +1,127 @@
+#include "request_handler.h"
+#include <magic_defs.h>
+#include <response_m.h>
+#include <functional>
+using namespace std::placeholders;
+using namespace std;
+using namespace std::literals;
+namespace http_handler {
+
+namespace methods {
+static constexpr std::string_view GET{"GET"sv};
+static constexpr std::string_view POST{"POST"sv};
+}  // namespace methods
+
+void RequestHandler::SetupRoutes() {
+    apiRouter_.AddRoute(Endpoint::MAPS_LIST)
+        .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
+                           MiscMessage::ALLOWED_GET_HEAD_METHOD)
+        .SetProcessFunction(bind(&RequestHandler::get_maps_list_handler, this, _1));
+
+    apiRouter_.AddRoute(Endpoint::MAP)
+        .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
+                           MiscMessage::ALLOWED_GET_HEAD_METHOD)
+        .SetProcessFunction(bind(&RequestHandler::get_map_handler, this, _1));
+
+    apiRouter_.AddRoute(Endpoint::JOIN_GAME)
+        .SetContentType(Response::ContentType::TEXT_JSON, "Wrong content type"sv)
+        .SetAllowedMethods({http::verb::post}, "Method not allowed"sv, MiscMessage::ALLOWED_POST_METHOD)
+        .SetProcessFunction(bind(&RequestHandler::post_join_game, this, _1));
+
+    apiRouter_.AddRoute(Endpoint::PLAYERS_LIST)
+        .SetNeedAuthorization(true)
+        .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
+                           MiscMessage::ALLOWED_GET_HEAD_METHOD)
+        .SetProcessFunction(bind(&RequestHandler::get_players, this, _1, _2));
+}
+
+StringResponse RequestHandler::get_map_handler(const http_handler::Request&& request) const {
+
+    auto status = http::status::ok;
+    auto target = request.target();
+    auto pos = request.target().find(Endpoint::MAP);
+
+    model::Map::Id mapId(std::string(request.target().substr(pos + Endpoint::MAP.length())));
+    const auto* map = game_.FindMap(mapId);
+    if (!map) {
+        // Если нет карты - возвращаем 404
+        return Response::MakeJSON(http::status::not_found, ErrorCode::FILE_404, ErrorMessage::FILE_404);
+    }
+
+    boost::json::value jv = boost::json::value_from(*map);
+    std::string serialized_json = boost::json::serialize(jv);
+
+    auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
+    return Response::Make(http::status::ok, serialized_json, content_type);
+}
+StringResponse RequestHandler::get_maps_list_handler(const http_handler::Request&& request) const {
+    auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
+    auto& maps = game_.GetMaps();
+    boost::json::array maplist;
+    for (const auto& map : maps) {
+        boost::json::object mapj;
+        mapj["id"] = *map.GetId();
+        mapj["name"] = map.GetName();
+        maplist.push_back(mapj);
+    }
+    std::string serialized_json = boost::json::serialize(maplist);
+    return Response::Make(http::status::ok, serialized_json, content_type);
+}
+
+StringResponse RequestHandler::post_join_game(const http_handler::Request&& request) const {
+    auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
+    // lokup for map
+    // Parse the JSON string to a boost::json::value
+    boost::json::value val;
+    try {
+        val = boost::json::parse(request.body());
+    } catch (...) {
+        return Response::MakeBadRequestInvalidArgument("Json object parsing error");
+    }
+
+    if (!val.is_object())
+        return Response::MakeBadRequestInvalidArgument("Bad json object"sv);
+
+    boost::json::object obj = val.as_object();
+    if (!obj.contains("mapId") || !obj.contains("userName"))
+        return Response::MakeBadRequestInvalidArgument(
+            "Bad json object. Make sure to have all required fields mentioned"sv);
+
+    const std::string userName(obj["userName"].get_string());
+    if (userName.empty())
+        return Response::MakeBadRequestInvalidArgument("Empty username"sv);
+
+    const auto mapId = model::Map::Id(std::string(obj["mapId"].get_string()));
+    const auto* selectedMap = game_.FindMap(mapId);
+    if (!selectedMap)
+        return Response::MakeJSON(http::status::not_found, "mapNotFound"sv, "Selected map wasn't found"sv);
+
+    // generare token
+    auto token = security::token::CreateToken();
+    // create player
+    auto newPlayer = game_.PlayersHandler().NewPlayer(userName, token);
+    if (!newPlayer) {
+        security::token::RemoveToken(*token);
+        return Response::MakeBadRequestInvalidArgument("User exists"sv);
+    }
+    // create session with selected map?
+    auto session = game_.StartGame(*selectedMap);
+    // join player(dog) to session
+    session.AddPlayer(*newPlayer);
+    // return token and player id
+    boost::json::value joinResponse{{"authToken", **token.get()}, {"playerId", newPlayer->Id()}};
+
+    return Response::Make(http::status::ok, boost::json::serialize(joinResponse));
+}
+
+StringResponse RequestHandler::get_players(const Token& token, const http_handler::Request&& request) const {
+    boost::json::object jPlayers;
+    auto players = game_.PlayersHandler().PlayersMap();
+    for (const auto& playerPair : players) {
+        jPlayers[to_string(playerPair.first)] = boost::json::object{{"name", playerPair.second->Name()}};
+    }
+    auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
+    std::string serialized_json = boost::json::serialize({jPlayers});
+    return Response::Make(http::status::ok, serialized_json, content_type);
+}
+}  // namespace http_handler
