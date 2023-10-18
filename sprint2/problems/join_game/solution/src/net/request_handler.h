@@ -52,10 +52,10 @@ public:
 private:
     void SetupRoutes();
 
-    StringResponse get_map_handler(const ApiRouter::Request&& request) const;
-    StringResponse get_maps_list_handler(const ApiRouter::Request&& request) const;
-    StringResponse post_join_game(const ApiRouter::Request&& request) const;
-    StringResponse get_players(const ApiRouter::Request&& request) const;
+    StringResponse get_map_handler(const http_handler::Request&& request) const;
+    StringResponse get_maps_list_handler(const http_handler::Request&& request) const;
+    StringResponse post_join_game(const http_handler::Request&& request) const;
+    StringResponse get_players(const Token& token, const http_handler::Request&& request) const;
 
 private:
     model::Game& game_;

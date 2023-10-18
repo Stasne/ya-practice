@@ -11,14 +11,13 @@
 #include "response_m.h"
 
 namespace http_handler {
-struct TokenTag {};
-using Token = util::Tagged<std::string, TokenTag>;
 
 namespace beast = boost::beast;
 namespace http = beast::http;
 // Class UriElement (Vladimir Mikhaylov(c)))
-using FunctionWithAuthorize = std::function<StringResponse(const Token& token, http::request<http::string_body>&& req)>;
-using FunctionWithoutAuthorize = std::function<StringResponse(http::request<http::string_body>&& req)>;
+using Request = http::request<http::string_body>;
+using FunctionWithAuthorize = std::function<StringResponse(const security::token::Token& token, Request&& req)>;
+using FunctionWithoutAuthorize = std::function<StringResponse(Request&& req)>;
 class UriElement {
     struct AllowedMethods {
         std::vector<http::verb> data_;
@@ -87,8 +86,10 @@ public:
                 return http_handler::Response::MakeBadRequestInvalidArgument(content_type_.error_);
             }
             if (authorize_.need_) {
-                //         return security::ExecuteAuthorized(
-                //             req, [&](const Token& token, std::string_view body) { return process_function_(token, body); });
+                return security::ExecuteAuthorized(req,
+                                                   [&](const security::token::Token& token, std::string_view body) {
+                                                       return process_function_(token, std::move(req));
+                                                   });
             }
 
             auto stop = req.target().find('?');
@@ -113,7 +114,6 @@ private:
 class ApiRouter {
 public:
     // using StringResponse = http::response<http::string_body>;
-    using Request = http::request<http::string_body>;
     using RequestHandler = UriElement;
     using ResponseHandler = std::function<void(StringResponse&)>;
 

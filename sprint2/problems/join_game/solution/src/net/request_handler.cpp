@@ -32,10 +32,10 @@ void RequestHandler::SetupRoutes() {
         .SetNeedAuthorization(true)
         .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
                            MiscMessage::ALLOWED_GET_HEAD_METHOD)
-        .SetProcessFunction(bind(&RequestHandler::get_players, this, _1));
+        .SetProcessFunction(bind(&RequestHandler::get_players, this, _1, _2));
 }
 
-StringResponse RequestHandler::get_map_handler(const ApiRouter::Request&& request) const {
+StringResponse RequestHandler::get_map_handler(const http_handler::Request&& request) const {
 
     auto status = http::status::ok;
     auto target = request.target();
@@ -54,7 +54,7 @@ StringResponse RequestHandler::get_map_handler(const ApiRouter::Request&& reques
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
     return Response::Make(http::status::ok, serialized_json, content_type);
 }
-StringResponse RequestHandler::get_maps_list_handler(const ApiRouter::Request&& request) const {
+StringResponse RequestHandler::get_maps_list_handler(const http_handler::Request&& request) const {
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
     auto& maps = game_.GetMaps();
     boost::json::array maplist;
@@ -68,13 +68,60 @@ StringResponse RequestHandler::get_maps_list_handler(const ApiRouter::Request&& 
     return Response::Make(http::status::ok, serialized_json, content_type);
 }
 
-StringResponse RequestHandler::post_join_game(const ApiRouter::Request&& request) const {
+StringResponse RequestHandler::post_join_game(const http_handler::Request&& request) const {
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
-    return Response::Make(http::status::ok, "join game", content_type);
+    // lokup for map
+    // Parse the JSON string to a boost::json::value
+    boost::json::value val;
+    try {
+        val = boost::json::parse(request.body());
+    } catch (...) {
+        return Response::MakeBadRequestInvalidArgument("Json object parsing error");
+    }
+
+    if (!val.is_object())
+        return Response::MakeBadRequestInvalidArgument("Bad json object"sv);
+
+    boost::json::object obj = val.as_object();
+    if (!obj.contains("mapId") || !obj.contains("userName"))
+        return Response::MakeBadRequestInvalidArgument(
+            "Bad json object. Make sure to have all required fields mentioned"sv);
+
+    const std::string userName(obj["userName"].get_string());
+    if (userName.empty())
+        return Response::MakeBadRequestInvalidArgument("Empty username"sv);
+
+    const auto mapId = model::Map::Id(std::string(obj["mapId"].get_string()));
+    const auto* selectedMap = game_.FindMap(mapId);
+    if (!selectedMap)
+        return Response::MakeJSON(http::status::not_found, "mapNotFound"sv, "Selected map wasn't found"sv);
+
+    // generare token
+    auto token = security::token::CreateToken();
+    // create player
+    auto newPlayer = game_.PlayersHandler().NewPlayer(userName, token);
+    if (!newPlayer) {
+        security::token::RemoveToken(*token);
+        return Response::MakeBadRequestInvalidArgument("User exists"sv);
+    }
+    // create session with selected map?
+    auto session = game_.StartGame(*selectedMap);
+    // join player(dog) to session
+    session.AddPlayer(*newPlayer);
+    // return token and player id
+    boost::json::value joinResponse{{"authToken", **token.get()}, {"playerId", newPlayer->Id()}};
+
+    return Response::Make(http::status::ok, boost::json::serialize(joinResponse));
 }
 
-StringResponse RequestHandler::get_players(const ApiRouter::Request&& request) const {
+StringResponse RequestHandler::get_players(const Token& token, const http_handler::Request&& request) const {
+    boost::json::object jPlayers;
+    auto players = game_.PlayersHandler().PlayersMap();
+    for (const auto& playerPair : players) {
+        jPlayers[to_string(playerPair.first)] = boost::json::object{{"name", playerPair.second->Name()}};
+    }
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
-    return Response::Make(http::status::ok, "serialized_json", content_type);
+    std::string serialized_json = boost::json::serialize({jPlayers});
+    return Response::Make(http::status::ok, serialized_json, content_type);
 }
 }  // namespace http_handler

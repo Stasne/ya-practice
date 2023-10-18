@@ -2,7 +2,6 @@
 #define __RESPONSE_M_H__
 
 #pragma once
-#define BOOST_BEAST_USE_STD_STRING_VIEW
 
 #include <string>
 #include <string_view>

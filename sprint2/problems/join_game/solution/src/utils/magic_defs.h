@@ -1,8 +1,6 @@
 #ifndef __MAGIC_DEFS_H__
 #define __MAGIC_DEFS_H__
 
-#pragma once
-#define BOOST_BEAST_USE_STD_STRING_VIEW
 #include <string>
 #include <string_view>
 using namespace std::literals;
