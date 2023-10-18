@@ -21,24 +21,33 @@ std::shared_ptr<Token> CreateToken() {
 
     return token;
 }
-bool ValidateToken(std::string tokenString) {
-    if (!ValidTokens.count(tokenString))
+bool IsTokenCorrect(const Token& token) {
+    // Токен должен быть 32 символа длиной.
+    if ((*token).size() != 32)
         return false;
 
-    if (ValidTokens.at(tokenString).expired()) {
-        ValidTokens.erase(tokenString);
+    // Проверяем, что все символы в токене являются допустимыми шестнадцатеричными символами.
+    for (auto it = (*token).begin(); it != (*token).end(); ++it) {
+        if (*it < '0' || (*it > '9' && *it < 'a') || *it > 'f')
+            return false;
+    }
+
+    // Если все проверки прошли, то токен считается верным.
+    return true;
+}
+bool IsTokenValid(const Token& token) {
+    if (!ValidTokens.count(*token))
+        return false;
+
+    if (ValidTokens.at(*token).expired()) {
+        ValidTokens.erase(*token);
         return false;
     }
     return true;
 }
-bool ValidateToken(const Token& token) {
-    return ValidateToken(*token);
-}
-void RemoveToken(std::string tokenString) {
-    ValidTokens.erase(tokenString);
-}
+
 void RemoveToken(const Token& token) {
-    RemoveToken(*token);
+    ValidTokens.erase(*token);
 }
 }  // namespace token
 }  // namespace security
