@@ -15,7 +15,7 @@ class Game {
 public:
     // Maps workflow
     using Maps = std::vector<Map>;
-    using GameSessions = std::vector<GameSession>;
+    using GameSessions = std::vector<spGameSession>;
     void AddMap(Map map);
 
     const Maps& GetMaps() const noexcept { return maps_; }
@@ -28,10 +28,21 @@ public:
     }
     //Players
     Players& PlayersHandler() { return players_; }
+
     //Gaming sessions
-    const GameSession& StartGame(const Map& map) {
-        sessions_.emplace_back(map);
+    spGameSession StartGame(const Map& map, std::string_view name) {
+        sessions_.emplace_back(std::make_shared<GameSession>(map, name));
         return sessions_.back();  //Т.к. на работу с апи стоит мьютекс, то безопасно
+    }
+
+    const spGameSession FindGame(const Dog& dog) {
+        for (const auto& session : sessions_) {
+            for (const auto& pDog : session->PlayingDogs()) {
+                if (pDog.Id() == dog.Id())
+                    return session;
+            }
+        }
+        return {};
     }
 
 private:

@@ -1,5 +1,5 @@
 #include "token_machine.h"
-
+#include <regex>
 using Token = util::Tagged<std::string, detail::TokenTag>;
 
 namespace {
@@ -22,23 +22,15 @@ std::shared_ptr<Token> CreateToken() {
     return token;
 }
 bool IsTokenCorrect(const Token& token) {
-    // Токен должен быть 32 символа длиной.
-    if ((*token).size() != 32)
-        return false;
+    std::regex hexPattern("^[0-9a-fA-F]{32}$");
 
-    // Проверяем, что все символы в токене являются допустимыми шестнадцатеричными символами.
-    for (auto it = (*token).begin(); it != (*token).end(); ++it) {
-        if (*it < '0' || (*it > '9' && *it < 'a') || *it > 'f')
-            return false;
-    }
-
-    // Если все проверки прошли, то токен считается верным.
-    return true;
+    // Проверка соответствия строки паттерну
+    return std::regex_match(*token, hexPattern);
 }
 bool IsTokenValid(const Token& token) {
-    if (!ValidTokens.count(*token))
-        return false;
-
+    return ValidTokens.count(*token);
+}
+bool IsAlive(const Token& token) {
     if (ValidTokens.at(*token).expired()) {
         ValidTokens.erase(*token);
         return false;

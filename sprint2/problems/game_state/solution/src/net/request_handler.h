@@ -5,8 +5,8 @@
 #include <string_view>
 #include "api_router.h"
 #include "file_server.h"
+#include "game.h"
 #include "http_server.h"
-#include "model.h"
 namespace http_handler {
 
 namespace beast = boost::beast;

@@ -114,9 +114,9 @@ StringResponse RequestHandler::post_join_game(const http_handler::Request&& requ
         return Response::MakeBadRequestInvalidArgument("User exists"sv);
     }
     // create session with selected map?
-    auto session = game_.StartGame(*selectedMap);
+    auto session = game_.StartGame(*selectedMap, "game");
     // join player(dog) to session
-    session.AddDog(*newPlayer->Dog());
+    session->AddDog(newPlayer->GetDog());
     // return token and player id
     boost::json::value joinResponse{{"authToken", **token.get()}, {"playerId", newPlayer->Id()}};
 
@@ -133,7 +133,6 @@ StringResponse RequestHandler::get_players(const Token& token, const http_handle
     std::string serialized_json = boost::json::serialize({jPlayers});
     return Response::Make(http::status::ok, serialized_json, content_type);
 }
-
 StringResponse RequestHandler::get_game_state(const Token& token, const http_handler::Request&& request) const {
     // get player session
     auto wpPlayer = game_.PlayersHandler().PlayerByToken(token);
@@ -141,7 +140,7 @@ StringResponse RequestHandler::get_game_state(const Token& token, const http_han
         //  Та хз, вроде не должно быть такого, проверка на существование ранее делалась (токена)
         assert(false);
     }
-    auto session = wpPlayer.lock()->CurrentGame();
+    auto session = game_.FindGame(wpPlayer.lock()->GetDog());
     if (!session)
         return http_handler::Response::MakeErrorUnknownToken("No game session was found for u");
 
@@ -165,8 +164,9 @@ StringResponse RequestHandler::get_game_state(const Token& token, const http_han
     }
 
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
-    return Response::Make(http::status::ok, boost::json::serialize(boost::json::value({"players", jObject})),
-                          content_type);
+    boost::json::object jFinal;
+    jFinal["players"] = jObject;
+    return Response::Make(http::status::ok, boost::json::serialize(boost::json::value(jFinal)), content_type);
 }
 
 }  // namespace http_handler

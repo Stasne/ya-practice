@@ -730,3 +730,15 @@ cpp-backend-tests-practicum
 # XML Results
 *.xml
 */precode*
+node_exporter-1.4.0.linux-amd64.tar.gz
+.vscode/launch.json
+.vscode/settings.json
+.vscode/tasks.json
+node_exporter-1.4.0.linux-amd64/LICENSE
+node_exporter-1.4.0.linux-amd64/node_exporter
+node_exporter-1.4.0.linux-amd64/nohup.out
+node_exporter-1.4.0.linux-amd64/NOTICE
+sprint1/problems/final_task/solution/.vscode/launch.json
+sprint1/problems/final_task/solution/.vscode/settings.json
+sprint1/problems/final_task/solution/.vscode/tasks.json
+sprint1/problems/map_json/solution/.vscode/settings.json

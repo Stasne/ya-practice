@@ -1,6 +1,6 @@
 #pragma once
 #include <dog.h>
-#include <model.h>
+#include <game.h>
 #include <token_machine.h>
 #include <memory>
 #include <string>
@@ -25,7 +25,8 @@ public:
         : dog_(std::make_shared<game::Dog>(name, id_)), token_(token), name_(name), id_(misc_id::Player_id++) {}
     std::string_view Name() const { return name_; }
     uint32_t Id() const { return id_; }
-    spDog Dog() const { return dog_; }
+    const Dog& GetDog() const { return *dog_; }  // naming issue
+    void AssignGame(spGameSession session) { session_ = session; }
     spGameSession CurrentGame() const { return session_; }
 
 private:

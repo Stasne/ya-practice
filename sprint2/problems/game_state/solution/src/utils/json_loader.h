@@ -2,7 +2,7 @@
 
 #include <filesystem>
 
-#include "model.h"
+#include "game.h"
 
 namespace json_loader {
 
