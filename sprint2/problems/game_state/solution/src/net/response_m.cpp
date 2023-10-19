@@ -21,12 +21,13 @@ StringResponse Response::MakeJSON(http::status status, std::string_view code, st
     return Make(status, boost::json::serialize(jv));
 }
 
-StringResponse Response::MakeUnauthorizedErrorInvalidToken() {
+StringResponse Response::MakeErrorInvalidToken() {
     return MakeJSON(http::status::unauthorized, ErrorCode::INVALID_TOKEN, ErrorMessage::INVALID_TOKEN);
 }
 
-StringResponse Response::MakeUnauthorizedErrorUnknownToken() {
-    return MakeJSON(http::status::unauthorized, ErrorCode::UNKNOWN_TOKEN, ErrorMessage::UNKNOWN_TOKEN);
+StringResponse Response::MakeErrorUnknownToken(std::string_view msg) {
+    return MakeJSON(http::status::unauthorized, ErrorCode::UNKNOWN_TOKEN,
+                    msg.size() ? msg : ErrorMessage::UNKNOWN_TOKEN);
 }
 
 StringResponse Response::MakeBadRequestInvalidArgument(std::string_view message) {

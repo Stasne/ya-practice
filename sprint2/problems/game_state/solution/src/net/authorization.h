@@ -23,10 +23,10 @@ http_handler::StringResponse ExecuteAuthorized(const http::request<Body, http::b
     auto token = ExtractTokenFromStringViewAndCheckIt(req.base()[http::field::authorization]);
 
     if (!token || !token::IsTokenCorrect(*token))
-        return http_handler::Response::MakeUnauthorizedErrorInvalidToken();
+        return http_handler::Response::MakeErrorInvalidToken();
 
     if (!token::IsTokenValid(*token))
-        return http_handler::Response::MakeUnauthorizedErrorUnknownToken();
+        return http_handler::Response::MakeErrorUnknownToken();
 
     return action(*token, req.body());
 }

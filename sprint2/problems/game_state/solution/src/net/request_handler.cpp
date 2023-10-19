@@ -1,10 +1,13 @@
 #include "request_handler.h"
+
 #include <magic_defs.h>
 #include <response_m.h>
 #include <functional>
-using namespace std::placeholders;
+
 using namespace std;
+using namespace std::placeholders;
 using namespace std::literals;
+
 namespace http_handler {
 
 namespace methods {
@@ -33,6 +36,12 @@ void RequestHandler::SetupRoutes() {
         .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
                            MiscMessage::ALLOWED_GET_HEAD_METHOD)
         .SetProcessFunction(bind(&RequestHandler::get_players, this, _1, _2));
+
+    apiRouter_.AddRoute(Endpoint::GAME_STATE)
+        .SetNeedAuthorization(true)
+        .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
+                           MiscMessage::ALLOWED_GET_HEAD_METHOD)
+        .SetProcessFunction(bind(&RequestHandler::get_game_state, this, _1, _2));
 }
 
 StringResponse RequestHandler::get_map_handler(const http_handler::Request&& request) const {
@@ -107,7 +116,7 @@ StringResponse RequestHandler::post_join_game(const http_handler::Request&& requ
     // create session with selected map?
     auto session = game_.StartGame(*selectedMap);
     // join player(dog) to session
-    session.AddPlayer(*newPlayer);
+    session.AddDog(*newPlayer->Dog());
     // return token and player id
     boost::json::value joinResponse{{"authToken", **token.get()}, {"playerId", newPlayer->Id()}};
 
@@ -124,4 +133,40 @@ StringResponse RequestHandler::get_players(const Token& token, const http_handle
     std::string serialized_json = boost::json::serialize({jPlayers});
     return Response::Make(http::status::ok, serialized_json, content_type);
 }
+
+StringResponse RequestHandler::get_game_state(const Token& token, const http_handler::Request&& request) const {
+    // get player session
+    auto wpPlayer = game_.PlayersHandler().PlayerByToken(token);
+    if (wpPlayer.expired()) {
+        //  Та хз, вроде не должно быть такого, проверка на существование ранее делалась (токена)
+        assert(false);
+    }
+    auto session = wpPlayer.lock()->CurrentGame();
+    if (!session)
+        return http_handler::Response::MakeErrorUnknownToken("No game session was found for u");
+
+    boost::json::object jObject;
+    // get all dogs from session
+    auto dogs = session->PlayingDogs();
+    for (const auto& dog : dogs) {
+        // auto dogOwner = game_.PlayersHandler().PlayerByDog(*dog);
+        boost::json::object jDog;
+        std::vector<float> pos{dog.Position().x, dog.Position().y};
+        boost::json::array jPos(pos.begin(), pos.end());
+        jDog["pos"] = jPos;
+
+        std::vector<float> speed{dog.Position().x, dog.Position().y};
+        boost::json::array jSpeed(speed.begin(), speed.end());
+        jDog["speed"] = jSpeed;
+
+        jDog["dir"] = dog.Direction();
+
+        jObject[to_string(dog.Id())] = jDog;
+    }
+
+    auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
+    return Response::Make(http::status::ok, boost::json::serialize(boost::json::value({"players", jObject})),
+                          content_type);
+}
+
 }  // namespace http_handler

@@ -35,8 +35,8 @@ public:
                                std::string_view allow_field = "");
     static StringResponse MakeJSON(http::status status, std::string_view code, std::string_view message);
 
-    static StringResponse MakeUnauthorizedErrorInvalidToken();
-    static StringResponse MakeUnauthorizedErrorUnknownToken();
+    static StringResponse MakeErrorInvalidToken();
+    static StringResponse MakeErrorUnknownToken(std::string_view = "");
 
     static StringResponse MakeBadRequestInvalidArgument(std::string_view message);
     static StringResponse MakeMethodNotAllowed(std::string_view message, std::string_view allow);

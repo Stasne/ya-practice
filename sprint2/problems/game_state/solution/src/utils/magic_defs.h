@@ -57,6 +57,7 @@ struct MiscMessage {
 struct Endpoint {
     static inline constexpr std::string_view API = "/api/"sv;
     static inline constexpr std::string_view GAME = "/api/v1/game/"sv;
+    static inline constexpr std::string_view GAME_STATE = "/api/v1/game/state"sv;
     static inline constexpr std::string_view JOIN_GAME = "/api/v1/game/join"sv;
     static inline constexpr std::string_view PLAYERS_LIST = "/api/v1/game/players"sv;
     static inline constexpr std::string_view MAP{"/api/v1/maps/"sv};

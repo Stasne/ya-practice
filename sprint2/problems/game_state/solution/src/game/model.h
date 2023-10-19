@@ -5,25 +5,11 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "game_session.h"
 #include "players.h"
+
 using namespace game;
 namespace model {
-
-class GameSession {
-public:
-    // using Id = util::Tagged<std::string, GameSession>;
-    GameSession(const Map& map) : map_(map) {}
-
-    // const Id& GetId() const noexcept { return id_; }
-    std::string_view Name() const noexcept { return name_; }
-    void AddPlayer(const Player& player) { dogs_.push_back(player.Dog()); };
-
-private:
-    using Dogs = std::vector<game::spDog>;
-    Dogs dogs_;
-    std::string name_;
-    const Map& map_;
-};
 
 class Game {
 public:

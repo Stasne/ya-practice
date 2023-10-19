@@ -56,6 +56,7 @@ private:
     StringResponse get_maps_list_handler(const http_handler::Request&& request) const;
     StringResponse post_join_game(const http_handler::Request&& request) const;
     StringResponse get_players(const Token& token, const http_handler::Request&& request) const;
+    StringResponse get_game_state(const Token& token, const http_handler::Request&& request) const;
 
 private:
     model::Game& game_;

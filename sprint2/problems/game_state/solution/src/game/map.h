@@ -1,11 +1,11 @@
 #pragma once
+#include <tagged.h>
 #include <boost/json.hpp>
 #include <boost/json/value_to.hpp>
-
-#include <tagged.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
 namespace model {
 
 using Dimension = int;
