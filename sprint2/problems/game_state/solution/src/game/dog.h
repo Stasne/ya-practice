@@ -11,10 +11,10 @@ using SpeedUnit = float;
 using PlayerPosDimension = float;
 
 struct SpeedVals {
-    SpeedUnit vert, hor;
+    SpeedUnit vert{0}, hor{0};
 };
 struct PlayerPoint {
-    PlayerPosDimension x, y;
+    PlayerPosDimension x{0}, y{0};
 };
 
 class Dog : public std::enable_shared_from_this<Dog> {
