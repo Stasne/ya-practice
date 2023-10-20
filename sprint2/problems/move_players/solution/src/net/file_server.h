@@ -29,7 +29,7 @@ public:
             }
         }
         if (!fs::exists(full_path) || fs::is_directory(full_path)) {
-            return http_handler::Response::MakeJSON(http::status::not_found, ErrorMessage::FILE_404,
+            return http_handler::Response::MakeJSON(http::status::not_found, ErrorCode::FILE_404,
                                                     http_handler::Response::ContentType::PLAIN_TEXT);
         }
 

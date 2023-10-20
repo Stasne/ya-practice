@@ -60,7 +60,7 @@ StringResponse RequestHandler::get_map_handler(const http_handler::Request&& req
     const auto* map = game_.FindMap(mapId);
     if (!map) {
         // Если нет карты - возвращаем 404
-        return Response::MakeJSON(http::status::not_found, ErrorCode::FILE_404, ErrorMessage::FILE_404);
+        return Response::MakeJSON(http::status::not_found, ErrorCode::MAP_404, ErrorMessage::FILE_404);
     }
 
     boost::json::value jv = boost::json::value_from(*map);
@@ -110,7 +110,7 @@ StringResponse RequestHandler::post_join_game(const http_handler::Request&& requ
     const auto mapId = model::Map::Id(std::string(obj["mapId"].get_string()));
     const auto* selectedMap = game_.FindMap(mapId);
     if (!selectedMap)
-        return Response::MakeJSON(http::status::not_found, "mapNotFound"sv, "Selected map wasn't found"sv);
+        return Response::MakeJSON(http::status::not_found, ErrorCode::MAP_404, "Selected map wasn't found"sv);
 
     // generare token
     auto token = security::token::CreateToken();

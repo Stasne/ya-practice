@@ -27,7 +27,8 @@ struct ServerParam {
 };
 
 struct ErrorCode {
-    static inline constexpr std::string_view FILE_404 = "NotFound"sv;
+    static inline constexpr std::string_view FILE_404 = "fileNotFound"sv;
+    static inline constexpr std::string_view MAP_404 = "mapNotFound"sv;
     static inline constexpr std::string_view BAD_REQUEST = "badRequest"sv;
     static inline constexpr std::string_view INVALID_METHOD = "invalidMethod"sv;
     static inline constexpr std::string_view INVALID_ARGUMENT = "invalidArgument"sv;
