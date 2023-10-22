@@ -26,7 +26,7 @@ public:
         : dog_(std::make_shared<game::Dog>(name, id_)), token_(token), name_(name), id_(misc::Player_id++) {}
     std::string_view Name() const { return name_; }
     uint32_t Id() const { return id_; }
-    const Dog& GetDog() const { return *dog_; }  // naming issue
+    const spDog GetDog() const { return dog_; }  // naming issue
     void AssignGame(spGameSession session) { session_ = session; }
     spGameSession CurrentGame() const { return session_; }
 

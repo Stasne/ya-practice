@@ -48,6 +48,11 @@ void RequestHandler::SetupRoutes() {
         .SetContentType(Response::ContentType::TEXT_JSON, "Wrong content type"sv)
         .SetAllowedMethods({http::verb::post}, "Method not allowed"sv, MiscMessage::ALLOWED_POST_METHOD)
         .SetProcessFunction(bind(&RequestHandler::post_player_action, this, _1, _2));
+
+    apiRouter_.AddRoute(Endpoint::EXTERNAL_TIME_TICK)
+        .SetContentType(Response::ContentType::TEXT_JSON, "Wrong content type"sv)
+        .SetAllowedMethods({http::verb::post}, "Method not allowed"sv, MiscMessage::ALLOWED_POST_METHOD)
+        .SetProcessFunction(bind(&RequestHandler::port_external_time_tick, this, _1));
 }
 
 StringResponse RequestHandler::get_map_handler(const http_handler::Request&& request) const {
@@ -86,8 +91,7 @@ StringResponse RequestHandler::get_maps_list_handler(const http_handler::Request
 
 StringResponse RequestHandler::post_join_game(const http_handler::Request&& request) const {
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
-    // lokup for map
-    // Parse the JSON string to a boost::json::value
+
     boost::json::value val;
     try {
         val = boost::json::parse(request.body());
@@ -112,9 +116,7 @@ StringResponse RequestHandler::post_join_game(const http_handler::Request&& requ
     if (!selectedMap)
         return Response::MakeJSON(http::status::not_found, ErrorCode::MAP_404, "Selected map wasn't found"sv);
 
-    // generare token
     auto token = security::token::CreateToken();
-    // create player
     auto newPlayer = game_.PlayersHandler().NewPlayer(userName, token);
     if (!newPlayer) {
         security::token::RemoveToken(*token);
@@ -149,7 +151,7 @@ StringResponse RequestHandler::get_game_state(const Token& token, const http_han
         //  Та хз, вроде не должно быть такого, проверка на существование ранее делалась (токена)
         assert(false);
     }
-    auto session = game_.FindGame(wpPlayer.lock()->GetDog());
+    auto session = game_.FindGame(*wpPlayer.lock()->GetDog());
     if (!session)
         return http_handler::Response::MakeErrorUnknownToken("No game session was found for u");
 
@@ -159,17 +161,17 @@ StringResponse RequestHandler::get_game_state(const Token& token, const http_han
     for (const auto& dog : dogs) {
         // auto dogOwner = game_.PlayersHandler().PlayerByDog(*dog);
         boost::json::object jDog;
-        std::vector<float> pos{dog.Position().x, dog.Position().y};
+        std::vector<double> pos{dog->Position().x, dog->Position().y};
         boost::json::array jPos(pos.begin(), pos.end());
         jDog["pos"] = jPos;
 
-        std::vector<float> speed{dog.Position().x, dog.Position().y};
+        std::vector<double> speed{dog->Position().x, dog->Position().y};
         boost::json::array jSpeed(speed.begin(), speed.end());
         jDog["speed"] = jSpeed;
 
-        jDog["dir"] = dog.Direction();
+        jDog["dir"] = dog->Direction();
 
-        jObject[to_string(dog.Id())] = jDog;
+        jObject[to_string(dog->Id())] = jDog;
     }
 
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
@@ -195,7 +197,7 @@ StringResponse RequestHandler::post_player_action(const Token& token, const http
         return Response::MakeBadRequestInvalidArgument(
             "Bad json object. Make sure to have all required fields mentioned"sv);
     auto move = std::string(obj["move"].get_string());
-    if (!game::Player::IsActionValid(move))
+    if (!move.empty() && !game::Player::IsActionValid(move))
         return Response::MakeBadRequestInvalidArgument("Wrong move value");
 
     // get player session
@@ -204,13 +206,40 @@ StringResponse RequestHandler::post_player_action(const Token& token, const http
         //  Та хз, вроде не должно быть такого, проверка на существование ранее делалась (токена)
         assert(false);
     }
-    auto session = game_.FindGame(wpPlayer.lock()->GetDog());
+    auto session = game_.FindGame(*wpPlayer.lock()->GetDog());
     if (!session)
         return http_handler::Response::MakeErrorUnknownToken("No game session was found for u");
 
     auto action = game::GameAction(move);
-    session->DogAction(wpPlayer.lock()->GetDog().Id(), action);
+    session->DogAction(wpPlayer.lock()->GetDog()->Id(), action);
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
     return Response::Make(http::status::ok, "");
 }
+StringResponse RequestHandler::port_external_time_tick(const http_handler::Request&& request) const {
+    boost::json::value val;
+    try {
+        val = boost::json::parse(request.body());
+    } catch (...) {
+        return Response::MakeBadRequestInvalidArgument("Json object parsing error");
+    }
+
+    if (!val.is_object())
+        return Response::MakeBadRequestInvalidArgument("Bad json object"sv);
+
+    boost::json::object obj = val.as_object();
+    if (!obj.contains("timeDelta"))
+        return Response::MakeBadRequestInvalidArgument(
+            "Bad json object. Make sure to have all required fields mentioned"sv);
+
+    // Ensure that "timeDelta" is an integer before getting its value
+    if (!obj["timeDelta"].is_int64())
+        return Response::MakeBadRequestInvalidArgument("Expected integer for 'timeDelta'"sv);
+
+    auto timeDelta = obj["timeDelta"].get_int64();
+
+    game_.TickTime(timeDelta);
+    auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
+    return Response::Make(http::status::ok, "{}");
+}
+
 }  // namespace http_handler

@@ -41,13 +41,16 @@ public:
     const spGameSession FindGame(const Dog& dog) {
         for (const auto& session : sessions_) {
             for (const auto& pDog : session->GetPlayingDogs()) {
-                if (pDog.Id() == dog.Id())
+                if (pDog->Id() == dog.Id())
                     return session;
             }
         }
         return {};
     }
-
+    void TickTime(double tick_ms) {
+        for (auto& session : sessions_)
+            session->UpdateState(tick_ms);
+    }
     void SetDefaultDogSpeed(double speed) { defaultSpeed_ = speed; }
 
 private:

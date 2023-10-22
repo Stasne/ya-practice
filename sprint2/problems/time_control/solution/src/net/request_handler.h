@@ -58,6 +58,7 @@ private:
     StringResponse get_players(const Token& token, const http_handler::Request&& request) const;
     StringResponse get_game_state(const Token& token, const http_handler::Request&& request) const;
     StringResponse post_player_action(const Token& token, const http_handler::Request&& request) const;
+    StringResponse port_external_time_tick(const http_handler::Request&& request) const;
 
 private:
     model::Game& game_;

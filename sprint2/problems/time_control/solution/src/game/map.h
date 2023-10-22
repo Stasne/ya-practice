@@ -51,8 +51,37 @@ public:
 
     Point GetStart() const noexcept { return start_; }
     Point GetEnd() const noexcept { return end_; }
+    bool ContainsPoint(const game::PlayerPoint& p) const noexcept {
+        if (IsHorizontal()) {
+            return p.y >= start_.y - halfWidth_ && p.y <= start_.y + halfWidth_ && p.x >= start_.x && p.x <= end_.x;
+        } else if (IsVertical()) {
+            return p.x >= start_.x - halfWidth_ && p.x <= start_.x + halfWidth_ && p.y >= start_.y && p.y <= end_.y;
+        } else {
+            return false;
+        }
+    }
+    bool FitPointToRoadMade(game::PlayerPoint& nextPoint) const noexcept {
+        if (this->IsHorizontal()) {
+            auto big = static_cast<double>(std::max(start_.x, end_.x));
+            auto small = static_cast<double>(std::min(start_.x, end_.x));
+            nextPoint.x = std::min(std::max(small, nextPoint.x), big);
+            double upperBound = static_cast<double>(start_.y + halfWidth_);
+            double lowerBound = static_cast<double>(start_.y - halfWidth_);
+            nextPoint.y = std::min(std::max(lowerBound, nextPoint.x), upperBound);
+        } else {
+            auto big = static_cast<double>(std::max(start_.y, end_.y));
+            auto small = static_cast<double>(std::min(start_.y, end_.y));
+            nextPoint.y = std::min(std::max(small, nextPoint.y), big);
+            double rightBound = start_.x + halfWidth_;
+            double leftBound = start_.x - halfWidth_;
+            nextPoint.x = std::min(std::max(leftBound, nextPoint.x), rightBound);
+        }
+
+        return false;
+    }
 
 private:
+    double halfWidth_{0.4};
     Point start_;
     Point end_;
 };
@@ -117,9 +146,19 @@ public:
         // Fallthrough case, should never be reached, but included for safety.
         return {0, 0};
     }
+
     void AddRoad(const Road& road) { roads_.emplace_back(road); }
     void AddBuilding(const Building& building) { buildings_.emplace_back(building); }
     void AddOffice(Office office);
+    Roads GetRoadsForPoint(const game::PlayerPoint& p) const noexcept {
+        Roads result;
+        for (const auto& road : roads_) {
+            if (road.ContainsPoint(p)) {
+                result.push_back(road);
+            }
+        }
+        return result;
+    }
 
 private:
     using OfficeIdToIndex = std::unordered_map<Office::Id, size_t, util::TaggedHasher<Office::Id>>;

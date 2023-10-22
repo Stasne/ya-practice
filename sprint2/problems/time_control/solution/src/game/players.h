@@ -47,7 +47,7 @@ private:
         // balya, a eto ne 'too much' 3 collections?
         players_[player->Id()] = player;
         playersByToken_[**token.get()] = player;  //key shared/weak? i dunno. by value yet
-        playersByDog_[player->GetDog().Id()] = player;
+        playersByDog_[player->GetDog()->Id()] = player;
     }
 
 private:
