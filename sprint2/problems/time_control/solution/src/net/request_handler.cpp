@@ -159,13 +159,12 @@ StringResponse RequestHandler::get_game_state(const Token& token, const http_han
     // get all dogs from session
     auto dogs = session->GetPlayingDogs();
     for (const auto& dog : dogs) {
-        // auto dogOwner = game_.PlayersHandler().PlayerByDog(*dog);
         boost::json::object jDog;
         std::vector<double> pos{dog->Position().x, dog->Position().y};
         boost::json::array jPos(pos.begin(), pos.end());
         jDog["pos"] = jPos;
 
-        std::vector<double> speed{dog->Position().x, dog->Position().y};
+        std::vector<double> speed{dog->Speed().hor, dog->Speed().vert};
         boost::json::array jSpeed(speed.begin(), speed.end());
         jDog["speed"] = jSpeed;
 
@@ -210,10 +209,11 @@ StringResponse RequestHandler::post_player_action(const Token& token, const http
     if (!session)
         return http_handler::Response::MakeErrorUnknownToken("No game session was found for u");
 
-    auto action = game::GameAction(move);
+    auto action = game::DogDirection(move);
     session->DogAction(wpPlayer.lock()->GetDog()->Id(), action);
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
-    return Response::Make(http::status::ok, "");
+
+    return Response::Make(http::status::ok, boost::json::serialize(boost::json::value(boost::json::object())));
 }
 StringResponse RequestHandler::port_external_time_tick(const http_handler::Request&& request) const {
     boost::json::value val;
@@ -239,7 +239,7 @@ StringResponse RequestHandler::port_external_time_tick(const http_handler::Reque
 
     game_.TickTime(timeDelta);
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
-    return Response::Make(http::status::ok, "{}");
+    return Response::Make(http::status::ok, boost::json::serialize(boost::json::value(boost::json::object())));
 }
 
 }  // namespace http_handler

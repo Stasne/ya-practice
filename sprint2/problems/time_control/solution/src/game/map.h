@@ -30,7 +30,25 @@ struct Rectangle {
 struct Offset {
     Dimension dx, dy;
 };
+static double bound(const double first, const double second, const double value) {
+    double lower = std::min(first, second);
+    double upper = std::max(first, second);
 
+    double result;
+    result = std::min(upper, value);
+    result = std::max(lower, result);
+    return result;
+}
+static uint32_t bound(const uint32_t first, const uint32_t second, const uint32_t value) {
+    uint32_t lower = std::min(first, second);
+    uint32_t upper = std::max(first, second);
+
+    uint32_t result;
+    result = std::min(upper, value);
+    result = std::max(lower, result);
+    return result;
+}
+static const double RoadWidth{0.4};
 class Road {
     struct HorizontalTag {
         explicit HorizontalTag() = default;
@@ -43,8 +61,26 @@ public:
     constexpr static HorizontalTag HORIZONTAL{};
     constexpr static VerticalTag VERTICAL{};
 
-    Road(HorizontalTag, Point start, Coord end_x) noexcept : start_{start}, end_{end_x, start.y} {}
-    Road(VerticalTag, Point start, Coord end_y) noexcept : start_{start}, end_{start.x, end_y} {}
+    Road(HorizontalTag, Point start, Coord end_x) noexcept
+        : width_(RoadWidth),
+          start_{start},
+          end_{end_x, start.y},
+          lbotX_(std::min(start_.x, end_.x) - width_),
+          lbotY_(std::max(start_.y, end_.y) + width_),
+          rtopX_(std::max(start_.x, end_.x) + width_),
+          rtopY_(std::min(start_.y, end_.y) - width_) {
+        auto i = 0;
+    }
+    Road(VerticalTag, Point start, Coord end_y) noexcept
+        : width_(RoadWidth),
+          start_{start},
+          end_{start.x, end_y},
+          lbotX_(std::min(start_.x, end_.x) - width_),
+          lbotY_(std::max(start_.y, end_.y) + width_),
+          rtopX_(std::max(start_.x, end_.x) + width_),
+          rtopY_(std::min(start_.y, end_.y) - width_) {
+        auto i = 0;
+    }
 
     bool IsHorizontal() const noexcept { return start_.y == end_.y; }
     bool IsVertical() const noexcept { return start_.x == end_.x; }
@@ -52,38 +88,23 @@ public:
     Point GetStart() const noexcept { return start_; }
     Point GetEnd() const noexcept { return end_; }
     bool ContainsPoint(const game::PlayerPoint& p) const noexcept {
-        if (IsHorizontal()) {
-            return p.y >= start_.y - halfWidth_ && p.y <= start_.y + halfWidth_ && p.x >= start_.x && p.x <= end_.x;
-        } else if (IsVertical()) {
-            return p.x >= start_.x - halfWidth_ && p.x <= start_.x + halfWidth_ && p.y >= start_.y && p.y <= end_.y;
-        } else {
-            return false;
-        }
+        return (p >= game::PlayerPoint(lbotX_, lbotY_) && p <= game::PlayerPoint(rtopX_, rtopY_));
     }
-    bool FitPointToRoadMade(game::PlayerPoint& nextPoint) const noexcept {
-        if (this->IsHorizontal()) {
-            auto big = static_cast<double>(std::max(start_.x, end_.x));
-            auto small = static_cast<double>(std::min(start_.x, end_.x));
-            nextPoint.x = std::min(std::max(small, nextPoint.x), big);
-            double upperBound = static_cast<double>(start_.y + halfWidth_);
-            double lowerBound = static_cast<double>(start_.y - halfWidth_);
-            nextPoint.y = std::min(std::max(lowerBound, nextPoint.x), upperBound);
-        } else {
-            auto big = static_cast<double>(std::max(start_.y, end_.y));
-            auto small = static_cast<double>(std::min(start_.y, end_.y));
-            nextPoint.y = std::min(std::max(small, nextPoint.y), big);
-            double rightBound = start_.x + halfWidth_;
-            double leftBound = start_.x - halfWidth_;
-            nextPoint.x = std::min(std::max(leftBound, nextPoint.x), rightBound);
-        }
-
-        return false;
+    game::PlayerPoint FitPointToRoad(const game::PlayerPoint& nextPoint) const noexcept {
+        auto boundPoint = nextPoint;
+        boundPoint.x = bound(lbotX_, rtopX_, boundPoint.x);
+        boundPoint.y = bound(lbotY_, rtopY_, boundPoint.y);
+        return boundPoint;
     }
 
 private:
-    double halfWidth_{0.4};
+    double width_;
     Point start_;
     Point end_;
+    const double lbotX_;
+    const double lbotY_;
+    const double rtopX_;
+    const double rtopY_;
 };
 
 class Building {
@@ -130,21 +151,14 @@ public:
     const Roads& GetRoads() const noexcept { return roads_; }
     const Offices& GetOffices() const noexcept { return offices_; }
     game::PlayerPoint GetSpawnPoint() const {
-        static std::default_random_engine eng{std::random_device{}()};
-        std::uniform_int_distribution<std::size_t> road_dist(0, roads_.size() - 1);
+        if (!roads_.size())
+            return {0, 0};
 
-        const Road& selected_road = roads_[road_dist(eng)];
+        static uint32_t seed{0};
+        auto& chosenRoad = roads_[seed++ % roads_.size()];
 
-        if (selected_road.IsHorizontal()) {
-            std::uniform_int_distribution<Coord> coord_dist(selected_road.GetStart().x, selected_road.GetEnd().x);
-            return {coord_dist(eng), selected_road.GetStart().y};
-        } else if (selected_road.IsVertical()) {
-            std::uniform_int_distribution<Coord> coord_dist(selected_road.GetStart().y, selected_road.GetEnd().y);
-            return {selected_road.GetStart().x, coord_dist(eng)};
-        }
-
-        // Fallthrough case, should never be reached, but included for safety.
-        return {0, 0};
+        return {static_cast<double>(bound(chosenRoad.GetStart().x, chosenRoad.GetEnd().x, seed)),
+                static_cast<double>(bound(chosenRoad.GetStart().y, chosenRoad.GetEnd().y, seed))};
     }
 
     void AddRoad(const Road& road) { roads_.emplace_back(road); }

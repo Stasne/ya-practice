@@ -31,6 +31,12 @@ public:
 
     //Gaming sessions
     spGameSession StartGame(const Map& map, std::string_view name) {
+        auto foundSession = std::find_if(sessions_.begin(), sessions_.end(), [&map](auto& spSession) {
+            return spSession->GetMap().GetId() == map.GetId();
+        });
+        if (foundSession != sessions_.end())
+            return *foundSession;
+
         double mapSpeed = defaultSpeed_;
         if (map.GetMapSpeed())
             mapSpeed = *map.GetMapSpeed();
@@ -47,7 +53,7 @@ public:
         }
         return {};
     }
-    void TickTime(double tick_ms) {
+    void TickTime(uint32_t tick_ms) {
         for (auto& session : sessions_)
             session->UpdateState(tick_ms);
     }
