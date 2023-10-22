@@ -47,9 +47,6 @@ public:
         }
     };
     game::PlayerPoint BoundDogMovementToMap(const game::PlayerPoint start, const game::PlayerPoint& finish) {
-        if (auto possibleDestRoad = map_.GetRoadsForPoint(finish); possibleDestRoad.size() == 1)
-            return finish;
-
         auto possibleRoads = map_.GetRoadsForPoint(start);
 
         if (!possibleRoads.size()) {
