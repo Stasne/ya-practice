@@ -15,9 +15,10 @@ namespace net = boost::asio;
 // using Strand = net::strand<net::io_context::executor_type>;
 class RequestHandler {
 public:
-    explicit RequestHandler(model::Game& game, files::FileServer& fileserver)  //, Strand apiStrand)
-        : game_{game}, files_(fileserver) {                                    //, apiStrand_(apiStrand) {
-        SetupRoutes();
+    explicit RequestHandler(model::Game& game, files::FileServer& fileserver,
+                            bool localMode = false)  //, Strand apiStrand)
+        : game_{game}, files_(fileserver) {          //, apiStrand_(apiStrand) {
+        SetupRoutes(localMode);
     }
 
     RequestHandler(const RequestHandler&) = delete;
@@ -50,7 +51,7 @@ public:
     }
 
 private:
-    void SetupRoutes();
+    void SetupRoutes(bool localMode);
 
     StringResponse get_map_handler(const http_handler::Request&& request) const;
     StringResponse get_maps_list_handler(const http_handler::Request&& request) const;

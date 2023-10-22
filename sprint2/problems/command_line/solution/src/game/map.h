@@ -150,9 +150,12 @@ public:
     const Buildings& GetBuildings() const noexcept { return buildings_; }
     const Roads& GetRoads() const noexcept { return roads_; }
     const Offices& GetOffices() const noexcept { return offices_; }
-    game::PlayerPoint GetSpawnPoint() const {
+    game::PlayerPoint GetSpawnPoint(bool isRandom) const {
         if (!roads_.size())
             return {0, 0};
+        if (!isRandom) {
+            return {static_cast<double>(roads_.front().GetStart().x), static_cast<double>(roads_.front().GetStart().y)};
+        }
 
         static uint32_t seed{0};
         auto& chosenRoad = roads_[seed++ % roads_.size()];

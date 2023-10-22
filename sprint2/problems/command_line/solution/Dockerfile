@@ -30,8 +30,12 @@ RUN groupadd -r www && useradd -r -g www www
 USER www
 # Скопируем приложение со сборочного контейнера в директорию /app.
 # Не забываем также папку data, она пригодится.
-COPY --from=build /app/build/bin/game_server /app/
+COPY --from=build /app/build/game_server /app/
 COPY ./static /home/game_server/wwwroot
 COPY ./data /app/data
 # Запускаем игровой сервер
-ENTRYPOINT ["/app/game_server", "/app/data/config.json", "/home/game_server/wwwroot"] 
+#--randomize-spawn-points 
+RUN ls /app/ && \
+ls /app/data && \
+ls /home/game_server
+ENTRYPOINT ["/app/game_server", "-c /app/data/config.json", "-w /home/game_server/wwwroot"] 

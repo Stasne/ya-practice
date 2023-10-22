@@ -40,10 +40,10 @@ public:
         double mapSpeed = defaultSpeed_;
         if (map.GetMapSpeed())
             mapSpeed = *map.GetMapSpeed();
-        sessions_.emplace_back(std::make_shared<GameSession>(map, mapSpeed, name));
+        sessions_.emplace_back(std::make_shared<GameSession>(map, mapSpeed, randomSpawn_, name));
         return sessions_.back();  //Т.к. на работу с апи стоит мьютекс, то безопасно
     }
-
+    void SetRandomSpawnEnabled(bool isEnabled) { randomSpawn_ = isEnabled; }
     const spGameSession FindGame(const Dog& dog) {
         for (const auto& session : sessions_) {
             for (const auto& pDog : session->GetPlayingDogs()) {
@@ -58,6 +58,7 @@ public:
             session->UpdateState(tick_ms);
     }
     void SetDefaultDogSpeed(double speed) { defaultSpeed_ = speed; }
+    void SetRandomSpawnPoint(bool isRandom = false) { randomSpawn_ = isRandom; }
 
 private:
     using MapIdHasher = util::TaggedHasher<Map::Id>;
@@ -68,6 +69,7 @@ private:
     MapIdToIndex map_id_to_index_;
     Players players_;
     double defaultSpeed_;
+    bool randomSpawn_ = false;
 };
 
 }  // namespace model

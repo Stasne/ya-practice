@@ -15,7 +15,7 @@ static constexpr std::string_view GET{"GET"sv};
 static constexpr std::string_view POST{"POST"sv};
 }  // namespace methods
 
-void RequestHandler::SetupRoutes() {
+void RequestHandler::SetupRoutes(bool localMode) {
     apiRouter_.AddRoute(Endpoint::MAPS_LIST)
         .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
                            MiscMessage::ALLOWED_GET_HEAD_METHOD)
@@ -48,11 +48,11 @@ void RequestHandler::SetupRoutes() {
         .SetContentType(Response::ContentType::TEXT_JSON, "Wrong content type"sv)
         .SetAllowedMethods({http::verb::post}, "Method not allowed"sv, MiscMessage::ALLOWED_POST_METHOD)
         .SetProcessFunction(bind(&RequestHandler::post_player_action, this, _1, _2));
-
-    apiRouter_.AddRoute(Endpoint::EXTERNAL_TIME_TICK)
-        .SetContentType(Response::ContentType::TEXT_JSON, "Wrong content type"sv)
-        .SetAllowedMethods({http::verb::post}, "Method not allowed"sv, MiscMessage::ALLOWED_POST_METHOD)
-        .SetProcessFunction(bind(&RequestHandler::port_external_time_tick, this, _1));
+    if (localMode)
+        apiRouter_.AddRoute(Endpoint::EXTERNAL_TIME_TICK)
+            .SetContentType(Response::ContentType::TEXT_JSON, "Wrong content type"sv)
+            .SetAllowedMethods({http::verb::post}, "Method not allowed"sv, MiscMessage::ALLOWED_POST_METHOD)
+            .SetProcessFunction(bind(&RequestHandler::port_external_time_tick, this, _1));
 }
 
 StringResponse RequestHandler::get_map_handler(const http_handler::Request&& request) const {

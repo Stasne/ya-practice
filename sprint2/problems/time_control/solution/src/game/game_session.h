@@ -9,15 +9,15 @@ static uint32_t SessionId{0};
 class GameSession {
 public:
     // using Id = util::Tagged<std::string, GameSession>;
-    GameSession(const Map& map, double speed, std::string_view name = "")
-        : id_(SessionId++), map_(map), speed_(speed), name_(name) {}
+    GameSession(const Map& map, double speed, bool randomSpawn = false, std::string_view name = "")
+        : id_(SessionId++), map_(map), randomSpawn_(randomSpawn), (speed), name_(name) {}
     // const Id& GetId() const noexcept { return id_; }
     std::string_view Name() const noexcept { return name_; }
     uint32_t GetId() const { return id_; }
     const Map& GetMap() const { return map_; }
     void AddDog(const game::spDog doge) {
         dogs_.push_back(doge);
-        auto mapSpawnPoint = map_.GetSpawnPoint();
+        auto mapSpawnPoint = map_.GetSpawnPoint(randomSpawn_);
         dogs_.back()->SetPosition(mapSpawnPoint);
         auto roadsForPoint = map_.GetRoadsForPoint(mapSpawnPoint);
         assert(roadsForPoint.size());  // DEBUG;
@@ -73,6 +73,7 @@ private:
     std::string name_;
     const Map& map_;
     double speed_;
+    const bool randomSpawn_;
 };
 using spGameSession = std::shared_ptr<GameSession>;
 }  // namespace model
