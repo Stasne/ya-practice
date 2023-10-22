@@ -31,11 +31,8 @@ USER www
 # Скопируем приложение со сборочного контейнера в директорию /app.
 # Не забываем также папку data, она пригодится.
 COPY --from=build /app/build/game_server /app/
-COPY ./static /home/game_server/wwwroot
 COPY ./data /app/data
+COPY ./static /app/wwwroot
 # Запускаем игровой сервер
 #--randomize-spawn-points 
-RUN ls /app/ && \
-ls /app/data && \
-ls /home/game_server
-ENTRYPOINT ["/app/game_server", "-c /app/data/config.json", "-w /home/game_server/wwwroot"] 
+ENTRYPOINT ["/app/game_server", "-c /app/data/config.json", "-w /app/wwwroot"] 
