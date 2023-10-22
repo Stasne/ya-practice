@@ -32,7 +32,8 @@ USER www
 # Не забываем также папку data, она пригодится.
 COPY --from=build /app/build/game_server /app/
 COPY ./data /app/data
-COPY ./static /app/wwwroot
+COPY ./static /app/static
 # Запускаем игровой сервер
 #--randomize-spawn-points 
-ENTRYPOINT ["/app/game_server", "-c /app/data/config.json", "-w /app/wwwroot"] 
+
+ENTRYPOINT ["/app/game_server", "--config-file /app/data/config.json", "--www-root /app/static/"] 
