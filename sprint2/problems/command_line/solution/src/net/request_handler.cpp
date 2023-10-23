@@ -1,13 +1,13 @@
 #include "request_handler.h"
-
 #include <magic_defs.h>
 #include <response_m.h>
+#include <serializer.h>
 #include <functional>
 
 using namespace std;
 using namespace std::placeholders;
 using namespace std::literals;
-
+using jfields = utils::serialization::fields;
 namespace http_handler {
 
 std::string_view ExtractMapName(string_view target) {
@@ -68,20 +68,16 @@ void RequestHandler::SetupRoutes(bool localMode) {
 }
 
 StringResponse RequestHandler::get_map_handler(std::string_view target) const {
-
-    // получить имя карты, которое содержится в переданной строке target после текста '/api/v1/maps/'
     auto mapName = ExtractMapName(target);
 
     if (mapName.empty())
         return get_maps_list_handler(target);
 
-    model::Map::Id mapId{std::string(mapName)};  // fix
+    model::Map::Id mapId{std::string(mapName)};
 
     const auto* map = game_.FindMap(mapId);
-    if (!map) {
-        // Если нет карты - возвращаем 404
+    if (!map)
         return Response::MakeJSON(http::status::not_found, ErrorCode::MAP_404, ErrorMessage::FILE_404);
-    }
 
     boost::json::value jv = boost::json::value_from(*map);
     std::string serialized_json = boost::json::serialize(jv);
@@ -93,14 +89,11 @@ StringResponse RequestHandler::get_map_handler(std::string_view target) const {
 StringResponse RequestHandler::get_maps_list_handler(std::string_view body) const {
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
     auto& maps = game_.GetMaps();
-    boost::json::array maplist;
-    for (const auto& map : maps) {
-        boost::json::object mapj;
-        mapj["id"] = *map.GetId();
-        mapj["name"] = map.GetName();
-        maplist.push_back(mapj);
-    }
-    std::string serialized_json = boost::json::serialize(maplist);
+    boost::json::array mapJsonArray;
+    for (const auto& map : maps)
+        mapJsonArray.push_back(utils::serialization::ToJsonObject(map));
+
+    std::string serialized_json = boost::json::serialize(mapJsonArray);
     return Response::Make(http::status::ok, serialized_json, content_type);
 }
 
@@ -118,15 +111,15 @@ StringResponse RequestHandler::post_join_game(std::string_view body) const {
         return Response::MakeBadRequestInvalidArgument("Bad json object"sv);
 
     boost::json::object obj = val.as_object();
-    if (!obj.contains("mapId") || !obj.contains("userName"))
+    if (!obj.contains(jfields::MAP_ID) || !obj.contains(jfields::USERNAME))
         return Response::MakeBadRequestInvalidArgument(
             "Bad json object. Make sure to have all required fields mentioned"sv);
 
-    const std::string userName(obj["userName"].get_string());
+    const std::string userName(obj[jfields::USERNAME].get_string());
     if (userName.empty())
-        return Response::MakeBadRequestInvalidArgument("Empty username"sv);
+        return Response::MakeBadRequestInvalidArgument(ErrorMessage::USERNAME_EMPTY);
 
-    const auto mapId = model::Map::Id(std::string(obj["mapId"].get_string()));
+    const auto mapId = model::Map::Id(std::string(obj[jfields::MAP_ID].get_string()));
     const auto* selectedMap = game_.FindMap(mapId);
     if (!selectedMap)
         return Response::MakeJSON(http::status::not_found, ErrorCode::MAP_404, "Selected map wasn't found"sv);
@@ -135,15 +128,13 @@ StringResponse RequestHandler::post_join_game(std::string_view body) const {
     auto newPlayer = game_.PlayersHandler().NewPlayer(userName, token);
     if (!newPlayer) {
         security::token::RemoveToken(*token);
-        return Response::MakeBadRequestInvalidArgument("User exists"sv);
+        return Response::MakeBadRequestInvalidArgument(ErrorMessage::USERNAME_EXISTS);
     }
-    // create session with selected map?
-    auto session = game_.StartGame(*selectedMap, "game");
-    // join player(dog) to session
+
+    auto session = game_.StartGame(*selectedMap);
     session->AddDog(newPlayer->GetDog());
 
-    // return token and player id
-    boost::json::value joinResponse{{"authToken", **token.get()}, {"playerId", newPlayer->Id()}};
+    boost::json::value joinResponse{{jfields::AUTH_TOKEN, **token.get()}, {jfields::PLAYER_ID, newPlayer->Id()}};
 
     return Response::Make(http::status::ok, boost::json::serialize(joinResponse));
 }
@@ -152,7 +143,7 @@ StringResponse RequestHandler::get_players(const Token& token, std::string_view 
     boost::json::object jPlayers;
     auto players = game_.PlayersHandler().PlayersMap();
     for (const auto& playerPair : players) {
-        jPlayers[to_string(playerPair.first)] = boost::json::object{{"name", playerPair.second->Name()}};
+        jPlayers[to_string(playerPair.first)] = boost::json::object{{jfields::NAME, playerPair.second->Name()}};
     }
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
     std::string serialized_json = boost::json::serialize({jPlayers});
@@ -160,32 +151,16 @@ StringResponse RequestHandler::get_players(const Token& token, std::string_view 
 }
 
 StringResponse RequestHandler::get_game_state(const Token& token, std::string_view body) const {
-    // get player session
     auto wpPlayer = game_.PlayersHandler().PlayerByToken(token);
-    if (wpPlayer.expired()) {
-        //  Та хз, вроде не должно быть такого, проверка на существование ранее делалась (токена)
-        assert(false);
-    }
+
     auto session = game_.FindGame(*wpPlayer.lock()->GetDog());
     if (!session)
         return http_handler::Response::MakeErrorUnknownToken("No game session was found for u");
 
     boost::json::object jObject;
-    // get all dogs from session
     auto dogs = session->GetPlayingDogs();
     for (const auto& dog : dogs) {
-        boost::json::object jDog;
-        std::vector<double> pos{dog->Position().x, dog->Position().y};
-        boost::json::array jPos(pos.begin(), pos.end());
-        jDog["pos"] = jPos;
-
-        std::vector<double> speed{dog->Speed().hor, dog->Speed().vert};
-        boost::json::array jSpeed(speed.begin(), speed.end());
-        jDog["speed"] = jSpeed;
-
-        jDog["dir"] = dog->Direction();
-
-        jObject[to_string(dog->Id())] = jDog;
+        jObject[to_string(dog->Id())] = utils::serialization::ToJsonObject(*dog);
     }
 
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
@@ -195,7 +170,6 @@ StringResponse RequestHandler::get_game_state(const Token& token, std::string_vi
 }
 
 StringResponse RequestHandler::post_player_action(const Token& token, std::string_view body) const {
-
     boost::json::value val;
     try {
         val = boost::json::parse(body);
@@ -207,19 +181,16 @@ StringResponse RequestHandler::post_player_action(const Token& token, std::strin
         return Response::MakeBadRequestInvalidArgument("Bad json object"sv);
 
     boost::json::object obj = val.as_object();
-    if (!obj.contains("move"))
+    if (!obj.contains(jfields::MOVE))
         return Response::MakeBadRequestInvalidArgument(
             "Bad json object. Make sure to have all required fields mentioned"sv);
-    auto move = std::string(obj["move"].get_string());
+    auto move = std::string(obj[jfields::MOVE].get_string());
     if (!move.empty() && !game::Player::IsActionValid(move))
         return Response::MakeBadRequestInvalidArgument("Wrong move value");
 
     // get player session
     auto wpPlayer = game_.PlayersHandler().PlayerByToken(token);
-    if (wpPlayer.expired()) {
-        //  Та хз, вроде не должно быть такого, проверка на существование ранее делалась (токена)
-        assert(false);
-    }
+
     auto session = game_.FindGame(*wpPlayer.lock()->GetDog());
     if (!session)
         return http_handler::Response::MakeErrorUnknownToken("No game session was found for u");
@@ -243,15 +214,14 @@ StringResponse RequestHandler::port_external_time_tick(std::string_view body) co
         return Response::MakeBadRequestInvalidArgument("Bad json object"sv);
 
     boost::json::object obj = val.as_object();
-    if (!obj.contains("timeDelta"))
+    if (!obj.contains(jfields::TIME_TICK_DELTA))
         return Response::MakeBadRequestInvalidArgument(
             "Bad json object. Make sure to have all required fields mentioned"sv);
 
-    // Ensure that "timeDelta" is an integer before getting its value
-    if (!obj["timeDelta"].is_int64())
+    if (!obj[jfields::TIME_TICK_DELTA].is_int64())
         return Response::MakeBadRequestInvalidArgument("Expected integer for 'timeDelta'"sv);
 
-    auto timeDelta = obj["timeDelta"].get_int64();
+    auto timeDelta = obj[jfields::TIME_TICK_DELTA].get_int64();
 
     game_.TickTime(timeDelta);
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);

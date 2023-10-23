@@ -1,0 +1,79 @@
+#include "game_session.h"
+#include <map.h>
+namespace {
+static uint32_t SessionId{0};
+}
+namespace model {
+
+GameSession::GameSession(const Map& map, double speed, bool randomSpawn, std::string_view name)
+    : id_(SessionId++),
+      map_(map),
+      speed_(speed),
+      randomSpawn_(randomSpawn),
+      name_([this, &name, &map]() -> std::string {
+          if (!name.empty())
+              return std::string(name);
+
+          return map.GetName() + '_' + std::to_string(id_);
+      }()) {}
+
+void GameSession::AddDog(const game::spDog doge) {
+    dogs_.push_back(doge);
+    auto mapSpawnPoint = GameSession::GetSpawnPoint(map_, randomSpawn_);
+    dogs_.back()->SetPosition(mapSpawnPoint);
+    auto roadsForPoint = map_.GetRoadsForPoint(mapSpawnPoint);
+}
+
+void GameSession::DogAction(uint32_t dogId, game::DogDirection action) {
+    auto foundDog = std::find_if(dogs_.begin(), dogs_.end(), [dogId](auto& dog) { return dog->Id() == dogId; });
+    if (foundDog == dogs_.end()) {
+        return;
+    }
+    auto& dog = *foundDog;
+    dog->SetDirection(action, speed_);
+}
+
+void GameSession::UpdateState(uint32_t tick_ms) {
+    for (auto& spdog : dogs_) {
+        game::PlayerPoint estimatePosition = spdog->EstimatePosition(tick_ms);
+        auto boundPoint = BoundDogMovementToMap(spdog->Position(), estimatePosition);
+        spdog->SetPosition(boundPoint);
+        if (boundPoint != estimatePosition)
+            spdog->SetSpeed(0);
+    }
+};
+
+game::PlayerPoint GameSession::GetSpawnPoint(const Map& map, bool isRandom) {
+    auto& roads = map.GetRoads();
+    if (!roads.size())
+        return {0, 0};
+
+    if (!isRandom)
+        return {static_cast<double>(roads.front().GetStart().x), static_cast<double>(roads.front().GetStart().y)};
+
+    static uint32_t seed{0};
+    auto& chosenRoad = roads[seed++ % roads.size()];
+
+    return {static_cast<double>(bound(chosenRoad.GetStart().x, chosenRoad.GetEnd().x, seed)),
+            static_cast<double>(bound(chosenRoad.GetStart().y, chosenRoad.GetEnd().y, seed))};
+}
+
+game::PlayerPoint GameSession::BoundDogMovementToMap(const game::PlayerPoint start, const game::PlayerPoint& finish) {
+    auto possibleRoads = map_.GetRoadsForPoint(start);
+
+    if (!possibleRoads.size()) {
+        //dog not on road???
+        boost::json::value json{{"map", map_.GetName()}, {"x", start.x}, {"y", start.y}};
+        BOOST_LOG_TRIVIAL(warning) << boost::log::add_value(additional_data, json) << "Dog not on road!";
+        return start;
+    }
+    game::PlayerPoint tmpNextPoint = possibleRoads.front().FitPointToRoad(finish);
+    for (const auto& road : possibleRoads) {
+        auto roadBoundPoint = road.FitPointToRoad(finish);
+        if (start.VectorLength(roadBoundPoint) > start.VectorLength(tmpNextPoint))
+            tmpNextPoint = roadBoundPoint;
+    }
+    return tmpNextPoint;
+}
+
+}  // namespace model

@@ -12,12 +12,11 @@ namespace http_handler {
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace net = boost::asio;
-// using Strand = net::strand<net::io_context::executor_type>;
+
 class RequestHandler {
 public:
-    explicit RequestHandler(model::Game& game, files::FileServer& fileserver,
-                            bool localMode = false)  //, Strand apiStrand)
-        : game_{game}, files_(fileserver) {          //, apiStrand_(apiStrand) {
+    explicit RequestHandler(model::Game& game, files::FileServer& fileserver, bool localMode = false)
+        : game_{game}, files_(fileserver) {
         SetupRoutes(localMode);
     }
 
@@ -31,20 +30,6 @@ public:
             std::lock_guard<std::mutex> lk(m_);
 
             send(apiRouter_.Route(std::forward<decltype(req)>(req)));
-
-            // using strand took too much time and led to fail...
-
-            // auto handle = [self = shared_from_this(), send, req = std::forward<decltype(req)>(req)]() mutable {
-            //     try {
-            //         // Этот assert не выстрелит, так как лямбда-функция будет выполняться внутри strand
-            //         assert(self->apiStrand_.running_in_this_thread());
-            //         return send(std::move(self->apiRouter_.Route(std::move(req))));
-            //     } catch (...) {
-            //         // send(self->ReportServerError(version, keep_alive));
-            //     }
-            // };
-            // // return net::dispatch(apiStrand_, handle);
-            // return net::dispatch(apiStrand_, handle);
 
         } else  // file request
             send(files_.FileRequestResponse(std::forward<decltype(req)>(req)));
@@ -65,7 +50,6 @@ private:
     model::Game& game_;
     files::FileServer& files_;
     ApiRouter apiRouter_;
-    // Strand& apiStrand_;
     std::mutex m_;
 };
 

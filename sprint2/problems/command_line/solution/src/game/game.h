@@ -30,7 +30,7 @@ public:
     Players& PlayersHandler() { return players_; }
 
     //Gaming sessions
-    spGameSession StartGame(const Map& map, std::string_view name);
+    spGameSession StartGame(const Map& map, std::string_view name = "");
     void SetRandomSpawnEnabled(bool isEnabled) { randomSpawn_ = isEnabled; }
     const spGameSession FindGame(const Dog& dog) {
         for (const auto& session : sessions_) {
