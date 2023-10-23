@@ -150,6 +150,16 @@ public:
     const Buildings& GetBuildings() const noexcept { return buildings_; }
     const Roads& GetRoads() const noexcept { return roads_; }
     const Offices& GetOffices() const noexcept { return offices_; }
+    game::PlayerPoint GetSpawnPoint() const {
+        if (!roads_.size())
+            return {0, 0};
+
+        static uint32_t seed{0};
+        auto& chosenRoad = roads_[seed++ % roads_.size()];
+
+        return {static_cast<double>(bound(chosenRoad.GetStart().x, chosenRoad.GetEnd().x, seed)),
+                static_cast<double>(bound(chosenRoad.GetStart().y, chosenRoad.GetEnd().y, seed))};
+    }
 
     void AddRoad(const Road& road) { roads_.emplace_back(road); }
     void AddBuilding(const Building& building) { buildings_.emplace_back(building); }
