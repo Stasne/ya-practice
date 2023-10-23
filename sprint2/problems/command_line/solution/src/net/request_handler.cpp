@@ -10,22 +10,33 @@ using namespace std::literals;
 
 namespace http_handler {
 
-namespace methods {
-static constexpr std::string_view GET{"GET"sv};
-static constexpr std::string_view POST{"POST"sv};
-}  // namespace methods
+std::string_view ExtractMapName(string_view target) {
 
+    auto pos = target.find(Endpoint::MAP);
+    if (pos != std::string_view::npos)
+        return target.substr(pos + Endpoint::MAP.length());
+
+    return "";
+}
 void RequestHandler::SetupRoutes(bool localMode) {
+
     apiRouter_.AddRoute(Endpoint::MAPS_LIST)
         .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
                            MiscMessage::ALLOWED_GET_HEAD_METHOD)
         .SetProcessFunction(bind(&RequestHandler::get_maps_list_handler, this, _1));
-
+    // костыльный маршрут, чтоб обрабатывать запросы к несуществующим картам
     apiRouter_.AddRoute(Endpoint::MAP)
         .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
                            MiscMessage::ALLOWED_GET_HEAD_METHOD)
         .SetProcessFunction(bind(&RequestHandler::get_map_handler, this, _1));
 
+    for (const auto& map : game_.GetMaps()) {
+        std::string mapPath(std::string(Endpoint::MAP) + std::string(*map.GetId()));
+        apiRouter_.AddRoute(mapPath)
+            .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
+                               MiscMessage::ALLOWED_GET_HEAD_METHOD)
+            .SetProcessFunction(bind(&RequestHandler::get_map_handler, this, _1));
+    }
     apiRouter_.AddRoute(Endpoint::JOIN_GAME)
         .SetContentType(Response::ContentType::TEXT_JSON, "Wrong content type"sv)
         .SetAllowedMethods({http::verb::post}, "Method not allowed"sv, MiscMessage::ALLOWED_POST_METHOD)
@@ -48,20 +59,24 @@ void RequestHandler::SetupRoutes(bool localMode) {
         .SetContentType(Response::ContentType::TEXT_JSON, "Wrong content type"sv)
         .SetAllowedMethods({http::verb::post}, "Method not allowed"sv, MiscMessage::ALLOWED_POST_METHOD)
         .SetProcessFunction(bind(&RequestHandler::post_player_action, this, _1, _2));
-    if (localMode)
+
+    if (localMode)  // shitty
         apiRouter_.AddRoute(Endpoint::EXTERNAL_TIME_TICK)
             .SetContentType(Response::ContentType::TEXT_JSON, "Wrong content type"sv)
             .SetAllowedMethods({http::verb::post}, "Method not allowed"sv, MiscMessage::ALLOWED_POST_METHOD)
             .SetProcessFunction(bind(&RequestHandler::port_external_time_tick, this, _1));
 }
 
-StringResponse RequestHandler::get_map_handler(const http_handler::Request&& request) const {
+StringResponse RequestHandler::get_map_handler(std::string_view target) const {
 
-    auto status = http::status::ok;
-    auto target = request.target();
-    auto pos = request.target().find(Endpoint::MAP);
+    // получить имя карты, которое содержится в переданной строке target после текста '/api/v1/maps/'
+    auto mapName = ExtractMapName(target);
 
-    model::Map::Id mapId(std::string(request.target().substr(pos + Endpoint::MAP.length())));
+    if (mapName.empty())
+        return get_maps_list_handler(target);
+
+    model::Map::Id mapId{std::string(mapName)};  // fix
+
     const auto* map = game_.FindMap(mapId);
     if (!map) {
         // Если нет карты - возвращаем 404
@@ -75,7 +90,7 @@ StringResponse RequestHandler::get_map_handler(const http_handler::Request&& req
     return Response::Make(http::status::ok, serialized_json, content_type);
 }
 
-StringResponse RequestHandler::get_maps_list_handler(const http_handler::Request&& request) const {
+StringResponse RequestHandler::get_maps_list_handler(std::string_view body) const {
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
     auto& maps = game_.GetMaps();
     boost::json::array maplist;
@@ -89,12 +104,12 @@ StringResponse RequestHandler::get_maps_list_handler(const http_handler::Request
     return Response::Make(http::status::ok, serialized_json, content_type);
 }
 
-StringResponse RequestHandler::post_join_game(const http_handler::Request&& request) const {
+StringResponse RequestHandler::post_join_game(std::string_view body) const {
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
 
     boost::json::value val;
     try {
-        val = boost::json::parse(request.body());
+        val = boost::json::parse(body);
     } catch (...) {
         return Response::MakeBadRequestInvalidArgument("Json object parsing error");
     }
@@ -133,7 +148,7 @@ StringResponse RequestHandler::post_join_game(const http_handler::Request&& requ
     return Response::Make(http::status::ok, boost::json::serialize(joinResponse));
 }
 
-StringResponse RequestHandler::get_players(const Token& token, const http_handler::Request&& request) const {
+StringResponse RequestHandler::get_players(const Token& token, std::string_view body) const {
     boost::json::object jPlayers;
     auto players = game_.PlayersHandler().PlayersMap();
     for (const auto& playerPair : players) {
@@ -144,7 +159,7 @@ StringResponse RequestHandler::get_players(const Token& token, const http_handle
     return Response::Make(http::status::ok, serialized_json, content_type);
 }
 
-StringResponse RequestHandler::get_game_state(const Token& token, const http_handler::Request&& request) const {
+StringResponse RequestHandler::get_game_state(const Token& token, std::string_view body) const {
     // get player session
     auto wpPlayer = game_.PlayersHandler().PlayerByToken(token);
     if (wpPlayer.expired()) {
@@ -179,11 +194,11 @@ StringResponse RequestHandler::get_game_state(const Token& token, const http_han
     return Response::Make(http::status::ok, boost::json::serialize(boost::json::value(jFinal)), content_type);
 }
 
-StringResponse RequestHandler::post_player_action(const Token& token, const http_handler::Request&& request) const {
+StringResponse RequestHandler::post_player_action(const Token& token, std::string_view body) const {
 
     boost::json::value val;
     try {
-        val = boost::json::parse(request.body());
+        val = boost::json::parse(body);
     } catch (...) {
         return Response::MakeBadRequestInvalidArgument("Json object parsing error");
     }
@@ -215,10 +230,11 @@ StringResponse RequestHandler::post_player_action(const Token& token, const http
 
     return Response::Make(http::status::ok, boost::json::serialize(boost::json::value(boost::json::object())));
 }
-StringResponse RequestHandler::port_external_time_tick(const http_handler::Request&& request) const {
+
+StringResponse RequestHandler::port_external_time_tick(std::string_view body) const {
     boost::json::value val;
     try {
-        val = boost::json::parse(request.body());
+        val = boost::json::parse(body);
     } catch (...) {
         return Response::MakeBadRequestInvalidArgument("Json object parsing error");
     }

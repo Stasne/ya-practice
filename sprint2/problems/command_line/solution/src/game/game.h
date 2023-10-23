@@ -30,19 +30,7 @@ public:
     Players& PlayersHandler() { return players_; }
 
     //Gaming sessions
-    spGameSession StartGame(const Map& map, std::string_view name) {
-        auto foundSession = std::find_if(sessions_.begin(), sessions_.end(), [&map](auto& spSession) {
-            return spSession->GetMap().GetId() == map.GetId();
-        });
-        if (foundSession != sessions_.end())
-            return *foundSession;
-
-        double mapSpeed = defaultSpeed_;
-        if (map.GetMapSpeed())
-            mapSpeed = *map.GetMapSpeed();
-        sessions_.emplace_back(std::make_shared<GameSession>(map, mapSpeed, randomSpawn_, name));
-        return sessions_.back();  //Т.к. на работу с апи стоит мьютекс, то безопасно
-    }
+    spGameSession StartGame(const Map& map, std::string_view name);
     void SetRandomSpawnEnabled(bool isEnabled) { randomSpawn_ = isEnabled; }
     const spGameSession FindGame(const Dog& dog) {
         for (const auto& session : sessions_) {

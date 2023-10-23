@@ -18,20 +18,17 @@ void Game::AddMap(Map map) {
     }
 }
 
-void Map::AddOffice(Office office) {
-    if (warehouse_id_to_index_.contains(office.GetId())) {
-        throw std::invalid_argument("Duplicate warehouse");
-    }
+spGameSession Game::StartGame(const Map& map, std::string_view name) {
+    auto foundSession = std::find_if(sessions_.begin(), sessions_.end(),
+                                     [&map](auto& spSession) { return spSession->GetMap().GetId() == map.GetId(); });
+    if (foundSession != sessions_.end())
+        return *foundSession;
 
-    const size_t index = offices_.size();
-    Office& o = offices_.emplace_back(std::move(office));
-    try {
-        warehouse_id_to_index_.emplace(o.GetId(), index);
-    } catch (...) {
-        // Удаляем офис из вектора, если не удалось вставить в unordered_map
-        offices_.pop_back();
-        throw;
-    }
+    double mapSpeed = defaultSpeed_;
+    if (map.GetMapSpeed())
+        mapSpeed = *map.GetMapSpeed();
+    sessions_.emplace_back(std::make_shared<GameSession>(map, mapSpeed, randomSpawn_, name));
+    return sessions_.back();  //Т.к. на работу с апи стоит мьютекс, то безопасно
 }
 
 }  // namespace model

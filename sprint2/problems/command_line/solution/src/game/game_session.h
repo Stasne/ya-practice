@@ -11,13 +11,14 @@ public:
     // using Id = util::Tagged<std::string, GameSession>;
     GameSession(const Map& map, double speed, bool randomSpawn = false, std::string_view name = "")
         : id_(SessionId++), map_(map), randomSpawn_(randomSpawn), speed_(speed), name_(name) {}
-    // const Id& GetId() const noexcept { return id_; }
-    std::string_view Name() const noexcept { return name_; }
+
+    std::string_view GetName() const noexcept { return name_; }
     uint32_t GetId() const { return id_; }
     const Map& GetMap() const { return map_; }
+
     void AddDog(const game::spDog doge) {
         dogs_.push_back(doge);
-        auto mapSpawnPoint = map_.GetSpawnPoint(randomSpawn_);
+        auto mapSpawnPoint = GameSession::GetSpawnPoint(map_, randomSpawn_);
         dogs_.back()->SetPosition(mapSpawnPoint);
         auto roadsForPoint = map_.GetRoadsForPoint(mapSpawnPoint);
         assert(roadsForPoint.size());  // DEBUG;
@@ -46,10 +47,24 @@ public:
                 spdog->SetSpeed(0);
         }
     };
-    game::PlayerPoint BoundDogMovementToMap(const game::PlayerPoint start, const game::PlayerPoint& finish) {
-        if (auto possibleDestRoad = map_.GetRoadsForPoint(finish); possibleDestRoad.size() == 1)
-            return finish;
 
+private:
+    static game::PlayerPoint GetSpawnPoint(const Map& map, bool isRandom) {
+        auto& roads = map.GetRoads();
+        if (!roads.size())
+            return {0, 0};
+
+        if (!isRandom)
+            return {static_cast<double>(roads.front().GetStart().x), static_cast<double>(roads.front().GetStart().y)};
+
+        static uint32_t seed{0};
+        auto& chosenRoad = roads[seed++ % roads.size()];
+
+        return {static_cast<double>(bound(chosenRoad.GetStart().x, chosenRoad.GetEnd().x, seed)),
+                static_cast<double>(bound(chosenRoad.GetStart().y, chosenRoad.GetEnd().y, seed))};
+    }
+
+    game::PlayerPoint BoundDogMovementToMap(const game::PlayerPoint start, const game::PlayerPoint& finish) {
         auto possibleRoads = map_.GetRoadsForPoint(start);
 
         if (!possibleRoads.size()) {
@@ -58,6 +73,7 @@ public:
             BOOST_LOG_TRIVIAL(warning) << boost::log::add_value(additional_data, json) << "Dog not on road!";
             return start;
         }
+
         game::PlayerPoint tmpNextPoint = possibleRoads.front().FitPointToRoad(finish);
         for (const auto& road : possibleRoads) {
             auto roadBoundPoint = road.FitPointToRoad(finish);

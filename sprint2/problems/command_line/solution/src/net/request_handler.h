@@ -53,13 +53,13 @@ public:
 private:
     void SetupRoutes(bool localMode);
 
-    StringResponse get_map_handler(const http_handler::Request&& request) const;
-    StringResponse get_maps_list_handler(const http_handler::Request&& request) const;
-    StringResponse post_join_game(const http_handler::Request&& request) const;
-    StringResponse get_players(const Token& token, const http_handler::Request&& request) const;
-    StringResponse get_game_state(const Token& token, const http_handler::Request&& request) const;
-    StringResponse post_player_action(const Token& token, const http_handler::Request&& request) const;
-    StringResponse port_external_time_tick(const http_handler::Request&& request) const;
+    StringResponse get_map_handler(std::string_view target) const;
+    StringResponse get_maps_list_handler(std::string_view body) const;
+    StringResponse post_join_game(std::string_view body) const;
+    StringResponse get_players(const Token& token, std::string_view body) const;
+    StringResponse get_game_state(const Token& token, std::string_view body) const;
+    StringResponse post_player_action(const Token& token, std::string_view body) const;
+    StringResponse port_external_time_tick(std::string_view body) const;
 
 private:
     model::Game& game_;

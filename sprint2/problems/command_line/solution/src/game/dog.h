@@ -52,8 +52,6 @@ public:
         : name_(name), id_(id /*misc_id::Dog_id++*/), pos_{0, 0}, speed_({0.0, 0.0}), dir_{std::string(actions::Up)} {}
     PlayerPoint Position() const { return pos_; }
     const PlayerPoint& SetPosition(const PlayerPoint& pos) {  //check if position is correct
-        boost::json::value json{{"dog", name_}, {"x", pos_.x}, {"y", pos_.y}};
-        BOOST_LOG_TRIVIAL(debug) << boost::log::add_value(additional_data, json) << "SetPosition";
         pos_ = pos;
         return pos_;
     }
