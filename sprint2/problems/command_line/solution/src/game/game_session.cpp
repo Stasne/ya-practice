@@ -42,7 +42,14 @@ void GameSession::UpdateState(uint32_t tick_ms) {
             spdog->SetSpeed(0);
     }
 };
-
+game::PlayerPoint GameSession::FitPointToRoad(const game::PlayerPoint& point, const Road& road) {
+    auto boundPoint = point;
+    auto leftBot = road.GetLeftBotCorner();
+    auto rightTop = road.GetRightTopCorner();
+    boundPoint.x = bound(leftBot.x, rightTop.x, boundPoint.x);
+    boundPoint.y = bound(leftBot.y, rightTop.y, boundPoint.y);
+    return boundPoint;
+}
 game::PlayerPoint GameSession::GetSpawnPoint(const Map& map, bool isRandom) {
     auto& roads = map.GetRoads();
     if (!roads.size())
@@ -58,18 +65,20 @@ game::PlayerPoint GameSession::GetSpawnPoint(const Map& map, bool isRandom) {
             static_cast<double>(bound(chosenRoad.GetStart().y, chosenRoad.GetEnd().y, seed))};
 }
 
-game::PlayerPoint GameSession::BoundDogMovementToMap(const game::PlayerPoint start, const game::PlayerPoint& finish) {
+game::PlayerPoint GameSession::BoundDogMovementToMap(const game::PlayerPoint start,
+                                                     const game::PlayerPoint& finish) const {
     auto possibleRoads = map_.GetRoadsForPoint(start);
 
     if (!possibleRoads.size()) {
         //dog not on road???
         boost::json::value json{{"map", map_.GetName()}, {"x", start.x}, {"y", start.y}};
-        BOOST_LOG_TRIVIAL(warning) << boost::log::add_value(additional_data, json) << "Dog not on road!";
+        Logger::Log(json, "Dog not on road!");
         return start;
     }
-    game::PlayerPoint tmpNextPoint = possibleRoads.front().FitPointToRoad(finish);
+
+    game::PlayerPoint tmpNextPoint = GameSession::FitPointToRoad(finish, possibleRoads.front());
     for (const auto& road : possibleRoads) {
-        auto roadBoundPoint = road.FitPointToRoad(finish);
+        auto roadBoundPoint = GameSession::FitPointToRoad(finish, road);
         if (start.VectorLength(roadBoundPoint) > start.VectorLength(tmpNextPoint))
             tmpNextPoint = roadBoundPoint;
     }

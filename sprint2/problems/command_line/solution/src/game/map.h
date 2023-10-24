@@ -13,11 +13,14 @@ namespace model {
 
 using Dimension = int;
 using Coord = Dimension;
+using Real = double;
 
 struct Point {
     Coord x, y;
 };
-
+struct RealPoint {
+    Real x, y;
+};
 struct Size {
     Dimension width, height;
 };
@@ -83,14 +86,11 @@ public:
 
     Point GetStart() const noexcept { return start_; }
     Point GetEnd() const noexcept { return end_; }
+    RealPoint GetLeftBotCorner() const noexcept { return {lbotX_, lbotY_}; }
+    RealPoint GetRightTopCorner() const noexcept { return {rtopX_, rtopY_}; }
+
     bool ContainsPoint(const game::PlayerPoint& p) const noexcept {
         return (p >= game::PlayerPoint(lbotX_, lbotY_) && p <= game::PlayerPoint(rtopX_, rtopY_));
-    }
-    game::PlayerPoint FitPointToRoad(const game::PlayerPoint& nextPoint) const noexcept {
-        auto boundPoint = nextPoint;
-        boundPoint.x = bound(lbotX_, rtopX_, boundPoint.x);
-        boundPoint.y = bound(lbotY_, rtopY_, boundPoint.y);
-        return boundPoint;
     }
 
 private:
