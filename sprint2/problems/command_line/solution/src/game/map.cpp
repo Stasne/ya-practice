@@ -26,6 +26,32 @@ constexpr static auto OffsetX{"offsetX"};
 constexpr static auto OffsetY{"offsetY"};
 }  // namespace Fields
 
+Map::Roads Map::GetRoadsForPoint(const game::PlayerPoint& p) const noexcept {
+    Roads result;
+    for (const auto& road : roads_) {
+        if (road.ContainsPoint(p)) {
+            result.push_back(road);
+        }
+    }
+    return result;
+}
+
+void Map::AddOffice(Office office) {
+    if (warehouse_id_to_index_.contains(office.GetId())) {
+        throw std::invalid_argument("Duplicate warehouse");
+    }
+
+    const size_t index = offices_.size();
+    Office& o = offices_.emplace_back(std::move(office));
+    try {
+        warehouse_id_to_index_.emplace(o.GetId(), index);
+    } catch (...) {
+        // Удаляем офис из вектора, если не удалось вставить в unordered_map
+        offices_.pop_back();
+        throw;
+    }
+}
+
 Road tag_invoke(boost::json::value_to_tag<Road>, const boost::json::value& jv) {
     if (!jv.is_object())
         throw std::runtime_error("Expected anboost::json::object");

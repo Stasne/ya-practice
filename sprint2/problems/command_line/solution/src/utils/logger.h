@@ -14,4 +14,11 @@ class Logger {
 public:
     Logger();
     static void init(std::filesystem::path path);
+    static void Message(std::string_view msg) { BOOST_LOG_TRIVIAL(info) << msg; }
+    static void Log(const boost::json::value& json, std::string_view msg = "") {
+        BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, json) << msg;
+    }
+    static void Log(const boost::json::object& json, std::string_view msg = "") {
+        BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, boost::json::value(json)) << msg;
+    }
 };

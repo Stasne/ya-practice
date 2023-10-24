@@ -3,69 +3,29 @@
 #include <iostream>
 
 namespace model {
-namespace {
-static uint32_t SessionId{0};
-}
+class Map;
+class Road;
 class GameSession {
 public:
-    // using Id = util::Tagged<std::string, GameSession>;
-    GameSession(const Map& map, double speed, bool randomSpawn = false, std::string_view name = "")
-        : id_(SessionId++), map_(map), randomSpawn_(randomSpawn), speed_(speed), name_(name) {}
-    // const Id& GetId() const noexcept { return id_; }
-    std::string_view Name() const noexcept { return name_; }
+    GameSession(const Map& map, double speed, bool randomSpawn = false, std::string_view name = "");
+    GameSession(const GameSession&) = delete;
+    GameSession(GameSession&&) = delete;
+    std::string_view GetName() const noexcept { return name_; }
     uint32_t GetId() const { return id_; }
     const Map& GetMap() const { return map_; }
-    void AddDog(const game::spDog doge) {
-        dogs_.push_back(doge);
-        auto mapSpawnPoint = map_.GetSpawnPoint(randomSpawn_);
-        dogs_.back()->SetPosition(mapSpawnPoint);
-        auto roadsForPoint = map_.GetRoadsForPoint(mapSpawnPoint);
-        assert(roadsForPoint.size());  // DEBUG;
-    };
 
-    void DogAction(uint32_t dogId, game::DogDirection action) {
-        auto foundDog = std::find_if(dogs_.begin(), dogs_.end(), [dogId](auto& dog) { return dog->Id() == dogId; });
-        //find dog
-        if (foundDog == dogs_.end()) {
-            assert(false);
-            return;
-        }
-        auto& dog = *foundDog;
-        dog->SetDirection(action, speed_);
-    }
+    void AddDog(const game::spDog doge);
+    void DogAction(uint32_t dogId, game::DogDirection action);
 
-    using Dogs = std::vector<game::spDog>;  //maybe unord_map?
+    using Dogs = std::vector<game::spDog>;
     const Dogs& GetPlayingDogs() const { return dogs_; }
 
-    void UpdateState(uint32_t tick_ms) {
-        for (auto& spdog : dogs_) {
-            game::PlayerPoint estimatePosition = spdog->EstimatePosition(tick_ms);
-            auto boundPoint = BoundDogMovementToMap(spdog->Position(), estimatePosition);
-            spdog->SetPosition(boundPoint);
-            if (boundPoint != estimatePosition)
-                spdog->SetSpeed(0);
-        }
-    };
-    game::PlayerPoint BoundDogMovementToMap(const game::PlayerPoint start, const game::PlayerPoint& finish) {
-        if (auto possibleDestRoad = map_.GetRoadsForPoint(finish); possibleDestRoad.size() == 1)
-            return finish;
+    void UpdateState(uint32_t tick_ms);
 
-        auto possibleRoads = map_.GetRoadsForPoint(start);
-
-        if (!possibleRoads.size()) {
-            //dog not on road???
-            boost::json::value json{{"map", map_.GetName()}, {"x", start.x}, {"y", start.y}};
-            BOOST_LOG_TRIVIAL(warning) << boost::log::add_value(additional_data, json) << "Dog not on road!";
-            return start;
-        }
-        game::PlayerPoint tmpNextPoint = possibleRoads.front().FitPointToRoad(finish);
-        for (const auto& road : possibleRoads) {
-            auto roadBoundPoint = road.FitPointToRoad(finish);
-            if (start.VectorLength(roadBoundPoint) > start.VectorLength(tmpNextPoint))
-                tmpNextPoint = roadBoundPoint;
-        }
-        return tmpNextPoint;
-    }
+private:
+    static game::PlayerPoint FitPointToRoad(const game::PlayerPoint& point, const Road& road);
+    static game::PlayerPoint GetSpawnPoint(const Map& map, bool isRandom);
+    game::PlayerPoint BoundDogMovementToMap(const game::PlayerPoint start, const game::PlayerPoint& finish) const;
 
 private:
     uint32_t id_;
@@ -75,5 +35,7 @@ private:
     double speed_;
     const bool randomSpawn_;
 };
+
 using spGameSession = std::shared_ptr<GameSession>;
+
 }  // namespace model

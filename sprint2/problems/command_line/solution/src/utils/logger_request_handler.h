@@ -24,7 +24,8 @@ public:
         boost::json::value request_log{{"ip", socket.remote_endpoint().address().to_string()},
                                        {"URI", req.target()},
                                        {"method", req.method_string()}};
-        BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, request_log) << "request received";
+        Logger::Log(request_log, "request received"sv);
+
         boost::json::object jResponseObj;
         jResponseObj["method"] = req.method_string();
 
@@ -42,8 +43,7 @@ public:
             send(response);
         };
         handler_(std::forward<decltype(req)>(req), std::move(loggingResponse));
-        BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, boost::json::value(jResponseObj))
-                                << "response sent";
+        Logger::Log(jResponseObj, "response sent"sv);
     }
 
 private:

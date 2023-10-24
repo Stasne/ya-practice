@@ -1,31 +1,42 @@
 #include "request_handler.h"
-
 #include <magic_defs.h>
 #include <response_m.h>
+#include <serializer.h>
 #include <functional>
 
 using namespace std;
 using namespace std::placeholders;
 using namespace std::literals;
-
+using jfields = utils::serialization::fields;
 namespace http_handler {
 
-namespace methods {
-static constexpr std::string_view GET{"GET"sv};
-static constexpr std::string_view POST{"POST"sv};
-}  // namespace methods
+std::string_view ExtractMapName(string_view target) {
 
+    auto pos = target.find(Endpoint::MAP);
+    if (pos != std::string_view::npos)
+        return target.substr(pos + Endpoint::MAP.length());
+
+    return "";
+}
 void RequestHandler::SetupRoutes(bool localMode) {
+
     apiRouter_.AddRoute(Endpoint::MAPS_LIST)
         .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
                            MiscMessage::ALLOWED_GET_HEAD_METHOD)
         .SetProcessFunction(bind(&RequestHandler::get_maps_list_handler, this, _1));
-
+    // костыльный маршрут, чтоб обрабатывать запросы к несуществующим картам
     apiRouter_.AddRoute(Endpoint::MAP)
         .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
                            MiscMessage::ALLOWED_GET_HEAD_METHOD)
         .SetProcessFunction(bind(&RequestHandler::get_map_handler, this, _1));
 
+    for (const auto& map : game_.GetMaps()) {
+        std::string mapPath(std::string(Endpoint::MAP) + std::string(*map.GetId()));
+        apiRouter_.AddRoute(mapPath)
+            .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
+                               MiscMessage::ALLOWED_GET_HEAD_METHOD)
+            .SetProcessFunction(bind(&RequestHandler::get_map_handler, this, _1));
+    }
     apiRouter_.AddRoute(Endpoint::JOIN_GAME)
         .SetContentType(Response::ContentType::TEXT_JSON, "Wrong content type"sv)
         .SetAllowedMethods({http::verb::post}, "Method not allowed"sv, MiscMessage::ALLOWED_POST_METHOD)
@@ -48,25 +59,25 @@ void RequestHandler::SetupRoutes(bool localMode) {
         .SetContentType(Response::ContentType::TEXT_JSON, "Wrong content type"sv)
         .SetAllowedMethods({http::verb::post}, "Method not allowed"sv, MiscMessage::ALLOWED_POST_METHOD)
         .SetProcessFunction(bind(&RequestHandler::post_player_action, this, _1, _2));
-    if (localMode)
+
+    if (localMode)  // shitty
         apiRouter_.AddRoute(Endpoint::EXTERNAL_TIME_TICK)
             .SetContentType(Response::ContentType::TEXT_JSON, "Wrong content type"sv)
             .SetAllowedMethods({http::verb::post}, "Method not allowed"sv, MiscMessage::ALLOWED_POST_METHOD)
             .SetProcessFunction(bind(&RequestHandler::port_external_time_tick, this, _1));
 }
 
-StringResponse RequestHandler::get_map_handler(const http_handler::Request&& request) const {
+StringResponse RequestHandler::get_map_handler(std::string_view target) const {
+    auto mapName = ExtractMapName(target);
 
-    auto status = http::status::ok;
-    auto target = request.target();
-    auto pos = request.target().find(Endpoint::MAP);
+    if (mapName.empty())
+        return get_maps_list_handler(target);
 
-    model::Map::Id mapId(std::string(request.target().substr(pos + Endpoint::MAP.length())));
+    model::Map::Id mapId{std::string(mapName)};
+
     const auto* map = game_.FindMap(mapId);
-    if (!map) {
-        // Если нет карты - возвращаем 404
+    if (!map)
         return Response::MakeJSON(http::status::not_found, ErrorCode::MAP_404, ErrorMessage::FILE_404);
-    }
 
     boost::json::value jv = boost::json::value_from(*map);
     std::string serialized_json = boost::json::serialize(jv);
@@ -75,26 +86,23 @@ StringResponse RequestHandler::get_map_handler(const http_handler::Request&& req
     return Response::Make(http::status::ok, serialized_json, content_type);
 }
 
-StringResponse RequestHandler::get_maps_list_handler(const http_handler::Request&& request) const {
+StringResponse RequestHandler::get_maps_list_handler(std::string_view body) const {
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
     auto& maps = game_.GetMaps();
-    boost::json::array maplist;
-    for (const auto& map : maps) {
-        boost::json::object mapj;
-        mapj["id"] = *map.GetId();
-        mapj["name"] = map.GetName();
-        maplist.push_back(mapj);
-    }
-    std::string serialized_json = boost::json::serialize(maplist);
+    boost::json::array mapJsonArray;
+    for (const auto& map : maps)
+        mapJsonArray.push_back(utils::serialization::ToJsonObject(map));
+
+    std::string serialized_json = boost::json::serialize(mapJsonArray);
     return Response::Make(http::status::ok, serialized_json, content_type);
 }
 
-StringResponse RequestHandler::post_join_game(const http_handler::Request&& request) const {
+StringResponse RequestHandler::post_join_game(std::string_view body) const {
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
 
     boost::json::value val;
     try {
-        val = boost::json::parse(request.body());
+        val = boost::json::parse(body);
     } catch (...) {
         return Response::MakeBadRequestInvalidArgument("Json object parsing error");
     }
@@ -103,15 +111,15 @@ StringResponse RequestHandler::post_join_game(const http_handler::Request&& requ
         return Response::MakeBadRequestInvalidArgument("Bad json object"sv);
 
     boost::json::object obj = val.as_object();
-    if (!obj.contains("mapId") || !obj.contains("userName"))
+    if (!obj.contains(jfields::MAP_ID) || !obj.contains(jfields::USERNAME))
         return Response::MakeBadRequestInvalidArgument(
             "Bad json object. Make sure to have all required fields mentioned"sv);
 
-    const std::string userName(obj["userName"].get_string());
+    const std::string userName(obj[jfields::USERNAME].get_string());
     if (userName.empty())
-        return Response::MakeBadRequestInvalidArgument("Empty username"sv);
+        return Response::MakeBadRequestInvalidArgument(ErrorMessage::USERNAME_EMPTY);
 
-    const auto mapId = model::Map::Id(std::string(obj["mapId"].get_string()));
+    const auto mapId = model::Map::Id(std::string(obj[jfields::MAP_ID].get_string()));
     const auto* selectedMap = game_.FindMap(mapId);
     if (!selectedMap)
         return Response::MakeJSON(http::status::not_found, ErrorCode::MAP_404, "Selected map wasn't found"sv);
@@ -120,57 +128,39 @@ StringResponse RequestHandler::post_join_game(const http_handler::Request&& requ
     auto newPlayer = game_.PlayersHandler().NewPlayer(userName, token);
     if (!newPlayer) {
         security::token::RemoveToken(*token);
-        return Response::MakeBadRequestInvalidArgument("User exists"sv);
+        return Response::MakeBadRequestInvalidArgument(ErrorMessage::USERNAME_EXISTS);
     }
-    // create session with selected map?
-    auto session = game_.StartGame(*selectedMap, "game");
-    // join player(dog) to session
+
+    auto session = game_.StartGame(*selectedMap);
     session->AddDog(newPlayer->GetDog());
 
-    // return token and player id
-    boost::json::value joinResponse{{"authToken", **token.get()}, {"playerId", newPlayer->Id()}};
+    boost::json::value joinResponse{{jfields::AUTH_TOKEN, **token.get()}, {jfields::PLAYER_ID, newPlayer->Id()}};
 
     return Response::Make(http::status::ok, boost::json::serialize(joinResponse));
 }
 
-StringResponse RequestHandler::get_players(const Token& token, const http_handler::Request&& request) const {
+StringResponse RequestHandler::get_players(const Token& token, std::string_view body) const {
     boost::json::object jPlayers;
     auto players = game_.PlayersHandler().PlayersMap();
     for (const auto& playerPair : players) {
-        jPlayers[to_string(playerPair.first)] = boost::json::object{{"name", playerPair.second->Name()}};
+        jPlayers[to_string(playerPair.first)] = boost::json::object{{jfields::NAME, playerPair.second->Name()}};
     }
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
     std::string serialized_json = boost::json::serialize({jPlayers});
     return Response::Make(http::status::ok, serialized_json, content_type);
 }
 
-StringResponse RequestHandler::get_game_state(const Token& token, const http_handler::Request&& request) const {
-    // get player session
+StringResponse RequestHandler::get_game_state(const Token& token, std::string_view body) const {
     auto wpPlayer = game_.PlayersHandler().PlayerByToken(token);
-    if (wpPlayer.expired()) {
-        //  Та хз, вроде не должно быть такого, проверка на существование ранее делалась (токена)
-        assert(false);
-    }
+
     auto session = game_.FindGame(*wpPlayer.lock()->GetDog());
     if (!session)
         return http_handler::Response::MakeErrorUnknownToken("No game session was found for u");
 
     boost::json::object jObject;
-    // get all dogs from session
     auto dogs = session->GetPlayingDogs();
     for (const auto& dog : dogs) {
-        boost::json::object jDog;
-        std::vector<double> pos{dog->Position().x, dog->Position().y};
-        boost::json::array jPos(pos.begin(), pos.end());
-        jDog["pos"] = jPos;
-
-        std::vector<double> speed{dog->Speed().hor, dog->Speed().vert};
-        boost::json::array jSpeed(speed.begin(), speed.end());
-        jDog["speed"] = jSpeed;
-
-        jDog["dir"] = dog->Direction();
-
-        jObject[to_string(dog->Id())] = jDog;
+        jObject[to_string(dog->Id())] = utils::serialization::ToJsonObject(*dog);
     }
 
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
@@ -179,11 +169,10 @@ StringResponse RequestHandler::get_game_state(const Token& token, const http_han
     return Response::Make(http::status::ok, boost::json::serialize(boost::json::value(jFinal)), content_type);
 }
 
-StringResponse RequestHandler::post_player_action(const Token& token, const http_handler::Request&& request) const {
-
+StringResponse RequestHandler::post_player_action(const Token& token, std::string_view body) const {
     boost::json::value val;
     try {
-        val = boost::json::parse(request.body());
+        val = boost::json::parse(body);
     } catch (...) {
         return Response::MakeBadRequestInvalidArgument("Json object parsing error");
     }
@@ -192,19 +181,16 @@ StringResponse RequestHandler::post_player_action(const Token& token, const http
         return Response::MakeBadRequestInvalidArgument("Bad json object"sv);
 
     boost::json::object obj = val.as_object();
-    if (!obj.contains("move"))
+    if (!obj.contains(jfields::MOVE))
         return Response::MakeBadRequestInvalidArgument(
             "Bad json object. Make sure to have all required fields mentioned"sv);
-    auto move = std::string(obj["move"].get_string());
+    auto move = std::string(obj[jfields::MOVE].get_string());
     if (!move.empty() && !game::Player::IsActionValid(move))
         return Response::MakeBadRequestInvalidArgument("Wrong move value");
 
     // get player session
     auto wpPlayer = game_.PlayersHandler().PlayerByToken(token);
-    if (wpPlayer.expired()) {
-        //  Та хз, вроде не должно быть такого, проверка на существование ранее делалась (токена)
-        assert(false);
-    }
+
     auto session = game_.FindGame(*wpPlayer.lock()->GetDog());
     if (!session)
         return http_handler::Response::MakeErrorUnknownToken("No game session was found for u");
@@ -215,10 +201,11 @@ StringResponse RequestHandler::post_player_action(const Token& token, const http
 
     return Response::Make(http::status::ok, boost::json::serialize(boost::json::value(boost::json::object())));
 }
-StringResponse RequestHandler::port_external_time_tick(const http_handler::Request&& request) const {
+
+StringResponse RequestHandler::port_external_time_tick(std::string_view body) const {
     boost::json::value val;
     try {
-        val = boost::json::parse(request.body());
+        val = boost::json::parse(body);
     } catch (...) {
         return Response::MakeBadRequestInvalidArgument("Json object parsing error");
     }
@@ -227,15 +214,14 @@ StringResponse RequestHandler::port_external_time_tick(const http_handler::Reque
         return Response::MakeBadRequestInvalidArgument("Bad json object"sv);
 
     boost::json::object obj = val.as_object();
-    if (!obj.contains("timeDelta"))
+    if (!obj.contains(jfields::TIME_TICK_DELTA))
         return Response::MakeBadRequestInvalidArgument(
             "Bad json object. Make sure to have all required fields mentioned"sv);
 
-    // Ensure that "timeDelta" is an integer before getting its value
-    if (!obj["timeDelta"].is_int64())
+    if (!obj[jfields::TIME_TICK_DELTA].is_int64())
         return Response::MakeBadRequestInvalidArgument("Expected integer for 'timeDelta'"sv);
 
-    auto timeDelta = obj["timeDelta"].get_int64();
+    auto timeDelta = obj[jfields::TIME_TICK_DELTA].get_int64();
 
     game_.TickTime(timeDelta);
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);

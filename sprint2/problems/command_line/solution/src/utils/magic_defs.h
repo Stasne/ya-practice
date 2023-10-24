@@ -44,6 +44,8 @@ struct ErrorMessage {
     static inline constexpr std::string_view GET_IS_EXPECTED = "Only GET method is expected"sv;
     static inline constexpr std::string_view INVALID_TOKEN = "Authorization header is missing"sv;
     static inline constexpr std::string_view UNKNOWN_TOKEN = "Player token has not been found"sv;
+    static inline constexpr std::string_view USERNAME_EXISTS = "Such username already exists"sv;
+    static inline constexpr std::string_view USERNAME_EMPTY = "Empty username"sv;
 };
 
 struct MiscDefs {

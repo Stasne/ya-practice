@@ -123,16 +123,16 @@ int main(int argc, const char* argv[]) {
                            std::forward<decltype(send)>(send));
         });
         boost::json::value custom_data{{"port", uport}, {"address", address.to_string()}};
-        BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, custom_data) << "server started"sv;
+        Logger::Log(custom_data, "server started"sv);
 
         // 6. Запускаем обработку асинхронных операций
         RunWorkers(std::max(1u, num_threads), [&ioc] { ioc.run(); });
-        boost::json::value finish_data{{"code", 0}};
-        BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, finish_data) << "server exited"sv;
+        boost::json::value finish_data{{"code", EXIT_SUCCESS}};
+        Logger::Log(finish_data, "server exited"sv);
 
     } catch (const std::exception& ex) {
         boost::json::value exception_data{{"code", EXIT_FAILURE}, {"exception", ex.what()}};
-        BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, exception_data) << "server exited"sv;
+        Logger::Log(exception_data, "server exited"sv);
         return EXIT_FAILURE;
     }
 

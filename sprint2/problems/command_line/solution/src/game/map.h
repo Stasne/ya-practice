@@ -13,11 +13,14 @@ namespace model {
 
 using Dimension = int;
 using Coord = Dimension;
+using Real = double;
 
 struct Point {
     Coord x, y;
 };
-
+struct RealPoint {
+    Real x, y;
+};
 struct Size {
     Dimension width, height;
 };
@@ -68,9 +71,7 @@ public:
           lbotX_(std::min(start_.x, end_.x) - width_),
           lbotY_(std::max(start_.y, end_.y) + width_),
           rtopX_(std::max(start_.x, end_.x) + width_),
-          rtopY_(std::min(start_.y, end_.y) - width_) {
-        auto i = 0;
-    }
+          rtopY_(std::min(start_.y, end_.y) - width_) {}
     Road(VerticalTag, Point start, Coord end_y) noexcept
         : width_(RoadWidth),
           start_{start},
@@ -78,23 +79,18 @@ public:
           lbotX_(std::min(start_.x, end_.x) - width_),
           lbotY_(std::max(start_.y, end_.y) + width_),
           rtopX_(std::max(start_.x, end_.x) + width_),
-          rtopY_(std::min(start_.y, end_.y) - width_) {
-        auto i = 0;
-    }
+          rtopY_(std::min(start_.y, end_.y) - width_) {}
 
     bool IsHorizontal() const noexcept { return start_.y == end_.y; }
     bool IsVertical() const noexcept { return start_.x == end_.x; }
 
     Point GetStart() const noexcept { return start_; }
     Point GetEnd() const noexcept { return end_; }
+    RealPoint GetLeftBotCorner() const noexcept { return {lbotX_, lbotY_}; }
+    RealPoint GetRightTopCorner() const noexcept { return {rtopX_, rtopY_}; }
+
     bool ContainsPoint(const game::PlayerPoint& p) const noexcept {
         return (p >= game::PlayerPoint(lbotX_, lbotY_) && p <= game::PlayerPoint(rtopX_, rtopY_));
-    }
-    game::PlayerPoint FitPointToRoad(const game::PlayerPoint& nextPoint) const noexcept {
-        auto boundPoint = nextPoint;
-        boundPoint.x = bound(lbotX_, rtopX_, boundPoint.x);
-        boundPoint.y = bound(lbotY_, rtopY_, boundPoint.y);
-        return boundPoint;
     }
 
 private:
@@ -150,42 +146,20 @@ public:
     const Buildings& GetBuildings() const noexcept { return buildings_; }
     const Roads& GetRoads() const noexcept { return roads_; }
     const Offices& GetOffices() const noexcept { return offices_; }
-    game::PlayerPoint GetSpawnPoint(bool isRandom) const {
-        if (!roads_.size())
-            return {0, 0};
-        if (!isRandom) {
-            return {static_cast<double>(roads_.front().GetStart().x), static_cast<double>(roads_.front().GetStart().y)};
-        }
-
-        static uint32_t seed{0};
-        auto& chosenRoad = roads_[seed++ % roads_.size()];
-
-        return {static_cast<double>(bound(chosenRoad.GetStart().x, chosenRoad.GetEnd().x, seed)),
-                static_cast<double>(bound(chosenRoad.GetStart().y, chosenRoad.GetEnd().y, seed))};
-    }
 
     void AddRoad(const Road& road) { roads_.emplace_back(road); }
     void AddBuilding(const Building& building) { buildings_.emplace_back(building); }
     void AddOffice(Office office);
-    Roads GetRoadsForPoint(const game::PlayerPoint& p) const noexcept {
-        Roads result;
-        for (const auto& road : roads_) {
-            if (road.ContainsPoint(p)) {
-                result.push_back(road);
-            }
-        }
-        return result;
-    }
+    Roads GetRoadsForPoint(const game::PlayerPoint& p) const noexcept;
 
 private:
-    using OfficeIdToIndex = std::unordered_map<Office::Id, size_t, util::TaggedHasher<Office::Id>>;
-
     Id id_;
     std::string name_;
     std::optional<double> speed_;
     Roads roads_;
     Buildings buildings_;
 
+    using OfficeIdToIndex = std::unordered_map<Office::Id, size_t, util::TaggedHasher<Office::Id>>;
     OfficeIdToIndex warehouse_id_to_index_;
     Offices offices_;
 };

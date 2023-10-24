@@ -16,8 +16,8 @@ namespace beast = boost::beast;
 namespace http = beast::http;
 // Class UriElement (Vladimir Mikhaylov(c)))
 using Request = http::request<http::string_body>;
-using FunctionWithAuthorize = std::function<StringResponse(const security::token::Token& token, Request&& req)>;
-using FunctionWithoutAuthorize = std::function<StringResponse(Request&& req)>;
+using FunctionWithAuthorize = std::function<StringResponse(const security::token::Token& token, std::string_view body)>;
+using FunctionWithoutAuthorize = std::function<StringResponse(std::string_view body)>;
 class UriElement {
     struct AllowedMethods {
         std::vector<http::verb> data_;
@@ -86,19 +86,22 @@ public:
                 return http_handler::Response::MakeBadRequestInvalidArgument(content_type_.error_);
             }
             if (authorize_.need_) {
-                return security::ExecuteAuthorized(req,
-                                                   [&](const security::token::Token& token, std::string_view body) {
-                                                       return process_function_(token, std::move(req));
-                                                   });
+                return security::ExecuteAuthorized(req, process_function_);
+                //    [&](const security::token::Token& token, std::string_view body) {
+                //        return process_function_(token, body);
+                //    });
             }
+
+            if (req.method() != http::verb::head && req.method() != http::verb::get)
+                return process_function_without_authorize_(req.body());
 
             auto stop = req.target().find('?');
             if (stop != std::string::npos) {
-                return process_function_without_authorize_(std::move(req));
-                // return process_function_without_authorize_(req.target().substr(stop + 1));
+                // return process_function_without_authorize_(std::move(req));
+                return process_function_without_authorize_(req.target().substr(stop + 1));
             }
 
-            auto resp = process_function_without_authorize_(std::move(req));
+            auto resp = process_function_without_authorize_(req.target());
             return resp;
         }
         return http_handler::Response::MakeMethodNotAllowed(methods_.error_, methods_.allowed_);
@@ -119,13 +122,17 @@ public:
 
     template <typename Body, typename Allocator>
     auto Route(http::request<Body, http::basic_fields<Allocator>>&& req) {
-        auto it = apiRoutes_.rbegin();
-        for (it; it != apiRoutes_.rend(); ++it) {
-            if (boost::starts_with(req.target(), it->first)) {
-                return it->second(std::move(req));
-            }
-        }
+        std::string croppedTarget = req.target();
+        auto stop = croppedTarget.find('?');
+        if (stop != std::string::npos)
+            croppedTarget = (croppedTarget.substr(stop + 1));
 
+        if (apiRoutes_.count(croppedTarget))
+            return apiRoutes_.at(croppedTarget)(std::move(req));
+        //костыль, чтоб возвращать mapNotFound если запрос именно к карте был. Нужен совет....
+        if (boost::starts_with(croppedTarget, Endpoint::MAP))
+            if (apiRoutes_.count(std::string(Endpoint::MAP)))
+                return apiRoutes_.at(std::string(Endpoint::MAP))(std::move(req));
         // if no such method exists
         return http_handler::Response::MakeJSON(http::status::bad_request, ErrorCode::BAD_REQUEST,
                                                 ErrorMessage::INVALID_ENDPOINT);
@@ -137,7 +144,7 @@ private:
     void MakeBadRequest(StringResponse& response) const;
 
 private:
-    std::map<std::string, RequestHandler> apiRoutes_;
+    std::unordered_map<std::string, RequestHandler> apiRoutes_;
 };
 
 }  // namespace http_handler

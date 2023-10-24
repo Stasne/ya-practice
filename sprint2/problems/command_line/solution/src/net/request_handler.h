@@ -12,12 +12,11 @@ namespace http_handler {
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace net = boost::asio;
-// using Strand = net::strand<net::io_context::executor_type>;
+
 class RequestHandler {
 public:
-    explicit RequestHandler(model::Game& game, files::FileServer& fileserver,
-                            bool localMode = false)  //, Strand apiStrand)
-        : game_{game}, files_(fileserver) {          //, apiStrand_(apiStrand) {
+    explicit RequestHandler(model::Game& game, files::FileServer& fileserver, bool localMode = false)
+        : game_{game}, files_(fileserver) {
         SetupRoutes(localMode);
     }
 
@@ -32,20 +31,6 @@ public:
 
             send(apiRouter_.Route(std::forward<decltype(req)>(req)));
 
-            // using strand took too much time and led to fail...
-
-            // auto handle = [self = shared_from_this(), send, req = std::forward<decltype(req)>(req)]() mutable {
-            //     try {
-            //         // Этот assert не выстрелит, так как лямбда-функция будет выполняться внутри strand
-            //         assert(self->apiStrand_.running_in_this_thread());
-            //         return send(std::move(self->apiRouter_.Route(std::move(req))));
-            //     } catch (...) {
-            //         // send(self->ReportServerError(version, keep_alive));
-            //     }
-            // };
-            // // return net::dispatch(apiStrand_, handle);
-            // return net::dispatch(apiStrand_, handle);
-
         } else  // file request
             send(files_.FileRequestResponse(std::forward<decltype(req)>(req)));
     }
@@ -53,19 +38,18 @@ public:
 private:
     void SetupRoutes(bool localMode);
 
-    StringResponse get_map_handler(const http_handler::Request&& request) const;
-    StringResponse get_maps_list_handler(const http_handler::Request&& request) const;
-    StringResponse post_join_game(const http_handler::Request&& request) const;
-    StringResponse get_players(const Token& token, const http_handler::Request&& request) const;
-    StringResponse get_game_state(const Token& token, const http_handler::Request&& request) const;
-    StringResponse post_player_action(const Token& token, const http_handler::Request&& request) const;
-    StringResponse port_external_time_tick(const http_handler::Request&& request) const;
+    StringResponse get_map_handler(std::string_view target) const;
+    StringResponse get_maps_list_handler(std::string_view body) const;
+    StringResponse post_join_game(std::string_view body) const;
+    StringResponse get_players(const Token& token, std::string_view body) const;
+    StringResponse get_game_state(const Token& token, std::string_view body) const;
+    StringResponse post_player_action(const Token& token, std::string_view body) const;
+    StringResponse port_external_time_tick(std::string_view body) const;
 
 private:
     model::Game& game_;
     files::FileServer& files_;
     ApiRouter apiRouter_;
-    // Strand& apiStrand_;
     std::mutex m_;
 };
 

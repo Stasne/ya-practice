@@ -84,7 +84,7 @@ private:
     }
     void ReportError(beast::error_code ec, std::string_view sv) {
         boost::json::value json{{"code", ec.value()}, {"text", ec.message()}, {"where", std::string(sv)}};
-        BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, json) << "error";
+        Logger::Log(json, "error"sv);
     }
     // Обработку запроса делегируем подклассу
     virtual void HandleRequest(HttpRequest&& request) = 0;
@@ -175,8 +175,7 @@ private:
     }
     void ReportError(beast::error_code ec, std::string_view sv) {
         boost::json::value json{{"code", ec.value()}, {"text", ec.message()}, {"where", std::string(sv)}};
-
-        BOOST_LOG_TRIVIAL(info) << boost::log::add_value(additional_data, json) << "error";
+        Logger::Log(json, "error"sv);
     }
 
 private:
