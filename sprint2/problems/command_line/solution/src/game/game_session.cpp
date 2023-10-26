@@ -10,12 +10,7 @@ GameSession::GameSession(const Map& map, double speed, bool randomSpawn, std::st
       map_(map),
       speed_(speed),
       randomSpawn_(randomSpawn),
-      name_([this, &name, &map]() -> std::string {
-          if (!name.empty())
-              return std::string(name);
-
-          return map.GetName() + '_' + std::to_string(id_);
-      }()) {}
+      name_(name.empty() ? map.GetName() + '_' + std::to_string(id_) : std::string(name)) {}
 
 void GameSession::AddDog(const game::spDog doge) {
     dogs_.push_back(doge);
@@ -29,8 +24,7 @@ void GameSession::DogAction(uint32_t dogId, game::DogDirection action) {
     if (foundDog == dogs_.end()) {
         return;
     }
-    auto& dog = *foundDog;
-    dog->SetDirection(action, speed_);
+    (*foundDog)->SetDirection(action, speed_);
 }
 
 void GameSession::UpdateState(uint32_t tick_ms) {
