@@ -9,7 +9,7 @@ static uint32_t SessionId{0};
 class GameSession {
 public:
     // using Id = util::Tagged<std::string, GameSession>;
-    GameSession(const Map& map, double speed, bool randomSpawn, std::string_view name = "")
+    GameSession(const Map& map, double speed, std::string_view name = "")
         : id_(SessionId++), map_(map), speed_(speed), name_(name) {}
     // const Id& GetId() const noexcept { return id_; }
     std::string_view Name() const noexcept { return name_; }

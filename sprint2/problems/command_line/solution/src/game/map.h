@@ -1,5 +1,4 @@
 #pragma once
-#include <dog.h>
 #include <tagged.h>
 #include <boost/json.hpp>
 #include <boost/json/value_to.hpp>
@@ -20,6 +19,17 @@ struct Point {
 };
 struct RealPoint {
     Real x, y;
+    double VectorLength(const RealPoint& point) const {
+        double squared_distance = pow(point.x - x, 2) + pow(point.y - y, 2);
+        return std::sqrt(squared_distance);
+    }
+
+    bool operator<=(const RealPoint& other) const { return x <= other.x && y >= other.y; }
+    bool operator>=(const RealPoint& other) const { return x >= other.x && y <= other.y; }
+    bool operator==(const RealPoint& other) const {
+        return (fabs(x - other.x) < std::numeric_limits<double>::epsilon() &&
+                fabs(y - other.y) < std::numeric_limits<double>::epsilon());
+    }
 };
 struct Size {
     Dimension width, height;
@@ -83,14 +93,19 @@ public:
 
     bool IsHorizontal() const noexcept { return start_.y == end_.y; }
     bool IsVertical() const noexcept { return start_.x == end_.x; }
-
     Point GetStart() const noexcept { return start_; }
     Point GetEnd() const noexcept { return end_; }
     RealPoint GetLeftBotCorner() const noexcept { return {lbotX_, lbotY_}; }
     RealPoint GetRightTopCorner() const noexcept { return {rtopX_, rtopY_}; }
 
-    bool ContainsPoint(const game::PlayerPoint& p) const noexcept {
-        return (p >= game::PlayerPoint(lbotX_, lbotY_) && p <= game::PlayerPoint(rtopX_, rtopY_));
+    bool ContainsPoint(const RealPoint& p) const noexcept {
+        return (p >= RealPoint(lbotX_, lbotY_) && p <= RealPoint(rtopX_, rtopY_));
+    }
+    RealPoint FitPointToRoad(const RealPoint& point) const {
+        auto boundPoint = point;
+        boundPoint.x = bound(lbotX_, rtopX_, boundPoint.x);
+        boundPoint.y = bound(lbotY_, rtopY_, boundPoint.y);
+        return boundPoint;
     }
 
 private:
@@ -150,7 +165,7 @@ public:
     void AddRoad(const Road& road) { roads_.emplace_back(road); }
     void AddBuilding(const Building& building) { buildings_.emplace_back(building); }
     void AddOffice(Office office);
-    Roads GetRoadsForPoint(const game::PlayerPoint& p) const noexcept;
+    Roads GetRoadsForPoint(const RealPoint& p) const noexcept;
 
 private:
     Id id_;

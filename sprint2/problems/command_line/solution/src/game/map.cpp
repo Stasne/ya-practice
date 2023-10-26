@@ -26,7 +26,7 @@ constexpr static auto OffsetX{"offsetX"};
 constexpr static auto OffsetY{"offsetY"};
 }  // namespace Fields
 
-Map::Roads Map::GetRoadsForPoint(const game::PlayerPoint& p) const noexcept {
+Map::Roads Map::GetRoadsForPoint(const RealPoint& p) const noexcept {
     Roads result;
     for (const auto& road : roads_) {
         if (road.ContainsPoint(p)) {

@@ -18,7 +18,7 @@ using namespace std::literals;
 
 using Token = security::token::Token;
 using spToken = std::shared_ptr<Token>;
-using spGameSession = std::shared_ptr<model::GameSession>;
+using spGameSession = std::shared_ptr<GameSession>;
 
 class Player : public std::enable_shared_from_this<Player> {
 public:

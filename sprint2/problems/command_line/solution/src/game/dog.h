@@ -1,13 +1,17 @@
 #pragma once
 #include <logger.h>
+#include <map.h>
 #include <tagged.h>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_set>
 
+using RealPoint = model::RealPoint;
+
 namespace game {
 using namespace std::literals;
+
 namespace actions {
 static constexpr std::string_view Stop{""sv};
 static constexpr std::string_view Up{"U"sv};
@@ -15,6 +19,7 @@ static constexpr std::string_view Down{"D"sv};
 static constexpr std::string_view Right{"R"sv};
 static constexpr std::string_view Left{"L"sv};
 }  // namespace actions
+
 namespace detail {
 struct DirectionTag {};
 }  // namespace detail
@@ -30,33 +35,18 @@ using PlayerPosDimension = double;
 struct SpeedVals {
     SpeedUnit vert{0}, hor{0};
 };
-struct PlayerPoint {
-    PlayerPosDimension x{0}, y{0};
-
-    double VectorLength(const PlayerPoint& point) const {
-        double squared_distance = pow(point.x - x, 2) + pow(point.y - y, 2);
-        return std::sqrt(squared_distance);
-    }
-
-    bool operator<=(const PlayerPoint& other) const { return x <= other.x && y >= other.y; }
-    bool operator>=(const PlayerPoint& other) const { return x >= other.x && y <= other.y; }
-    bool operator==(const PlayerPoint& other) const {
-        return (fabs(x - other.x) < std::numeric_limits<double>::epsilon() &&
-                fabs(y - other.y) < std::numeric_limits<double>::epsilon());
-    }
-};
 
 class Dog : public std::enable_shared_from_this<Dog> {
 public:
     Dog(std::string_view name, uint32_t id)
         : name_(name), id_(id /*misc_id::Dog_id++*/), pos_{0, 0}, speed_({0.0, 0.0}), dir_{std::string(actions::Up)} {}
-    PlayerPoint Position() const { return pos_; }
-    const PlayerPoint& SetPosition(const PlayerPoint& pos) {  //check if position is correct
+    RealPoint Position() const { return pos_; }
+    const RealPoint& SetPosition(const RealPoint& pos) {  //check if position is correct
         pos_ = pos;
         return pos_;
     }
-    PlayerPoint EstimatePosition(uint32_t ticks_ms) const {
-        PlayerPoint estimatingPoint;
+    RealPoint EstimatePosition(uint32_t ticks_ms) const {
+        RealPoint estimatingPoint;
         double horPath = speed_.hor * (static_cast<double>(ticks_ms) / 1000);
         double vertPath = speed_.vert * (static_cast<double>(ticks_ms) / 1000);
         estimatingPoint.x = pos_.x + horPath;
@@ -95,11 +85,10 @@ public:
     }
 
 private:
-private:
     uint32_t id_;
     std::string name_;
     SpeedVals speed_;
-    PlayerPoint pos_;
+    RealPoint pos_;
     game::DogDirection dir_;
 };
 using spDog = std::shared_ptr<Dog>;

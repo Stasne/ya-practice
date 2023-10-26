@@ -5,37 +5,45 @@
 namespace model {
 class Map;
 class Road;
+
+}  // namespace model
+namespace game {
+
+struct SessionConfiguration {
+    std::string name;
+    const model::Map& map;
+    const double speed;
+    const bool randomSpawnPoint;
+};
+
 class GameSession {
 public:
-    GameSession(const Map& map, double speed, bool randomSpawn = false, std::string_view name = "");
+    GameSession(SessionConfiguration&& config);
     GameSession(const GameSession&) = delete;
     GameSession(GameSession&&) = delete;
-    std::string_view GetName() const noexcept { return name_; }
+    std::string_view GetName() const noexcept { return config_.name; }
     uint32_t GetId() const { return id_; }
-    const Map& GetMap() const { return map_; }
+    const model::Map& GetMap() const { return config_.map; }
 
-    void AddDog(const game::spDog doge);
-    void DogAction(uint32_t dogId, game::DogDirection action);
+    void AddDog(const spDog doge);
+    void DogAction(uint32_t dogId, DogDirection action);
 
-    using Dogs = std::vector<game::spDog>;
+    using Dogs = std::vector<spDog>;
     const Dogs& GetPlayingDogs() const { return dogs_; }
 
     void UpdateState(uint32_t tick_ms);
 
 private:
-    static game::PlayerPoint FitPointToRoad(const game::PlayerPoint& point, const Road& road);
-    static game::PlayerPoint GetSpawnPoint(const Map& map, bool isRandom);
-    game::PlayerPoint BoundDogMovementToMap(const game::PlayerPoint start, const game::PlayerPoint& finish) const;
+    void UpdateDogsPosition(uint32_t tick_ms);
+
+    RealPoint BoundDogMovementToMap(const RealPoint start, const RealPoint& finish) const;
 
 private:
     uint32_t id_;
     Dogs dogs_;
-    std::string name_;
-    const Map& map_;
-    double speed_;
-    const bool randomSpawn_;
+    SessionConfiguration config_;
 };
 
 using spGameSession = std::shared_ptr<GameSession>;
 
-}  // namespace model
+}  // namespace game
