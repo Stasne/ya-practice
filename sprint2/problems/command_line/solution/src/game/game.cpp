@@ -24,10 +24,11 @@ spGameSession Game::StartGame(const Map& map, std::string_view name) {
     if (foundSession != sessions_.end())
         return *foundSession;
 
-    double mapSpeed = defaultSpeed_;
+    double sessionSpeed = defaultSpeed_;
     if (map.GetMapSpeed())
-        mapSpeed = *map.GetMapSpeed();
-    sessions_.emplace_back(std::make_shared<GameSession>(map, mapSpeed, randomSpawn_, name));
+        sessionSpeed = *map.GetMapSpeed();
+    game::SessionConfiguration config(std::string(name), map, sessionSpeed, randomSpawn_);
+    sessions_.emplace_back(std::make_shared<GameSession>(std::move(config)));
     return sessions_.back();  //Т.к. на работу с апи стоит мьютекс, то безопасно
 }
 
