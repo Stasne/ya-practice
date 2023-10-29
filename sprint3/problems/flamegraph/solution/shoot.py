@@ -28,7 +28,7 @@ def run(command, output=None):
     return process
 
 def runPerf(pid, output=None):
-    perf_cmd='sudo perf record -g -p ' + str(pid)
+    perf_cmd='sudo perf record -o perf.data -g -p ' + str(pid)
     process = subprocess.Popen(shlex.split(perf_cmd), stdout=output, stderr=subprocess.DEVNULL)
     return process
 
@@ -73,5 +73,6 @@ stop(perfProc)
 
 time.sleep(1)
 makeSvg()
+time.sleep(1)
 
 print('Job done')
