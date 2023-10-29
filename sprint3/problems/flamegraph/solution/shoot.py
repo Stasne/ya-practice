@@ -53,13 +53,14 @@ def make_shots():
 
 
 def makeSvg():
-    command = "perf script | ./FlameGraph/stackcollapse-perf.pl | ./FlameGraph/flamegraph.pl > graph.svg"
+    command = "perf script -i perf.data | ./FlameGraph/stackcollapse-perf.pl | ./FlameGraph/flamegraph.pl > graph.svg"
     process = subprocess.Popen(
         command,
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
     )
+    process.wait()
 
 server = run(start_server())
 print('Server stater as ' + str(server.pid))
@@ -71,9 +72,9 @@ make_shots()
 stop(perfProc)
 stop(server)
 
-time.sleep(2)
+time.sleep(1)
 makeSvg()
-time.sleep(1)
-run('ls -la')
-time.sleep(1)
+# time.sleep(1)
+# run('ls -la')
+# time.sleep(1)
 print('Job done')
