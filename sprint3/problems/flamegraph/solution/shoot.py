@@ -68,10 +68,10 @@ print('Perf stater as ' + str(perfProc.pid))
 
 make_shots()
 
-stop(server)
 stop(perfProc)
+stop(server)
 
-time.sleep(1)
+time.sleep(2)
 makeSvg()
 time.sleep(1)
 run('ls -la')
