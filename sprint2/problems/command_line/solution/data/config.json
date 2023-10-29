@@ -2,50 +2,6 @@
   "defaultDogSpeed": 3.0,
   "maps": [
     {
-      "dogSpeed": 1.0,
-      "id": "mapTest",
-      "name": "Map Test",
-      "roads": [
-        {
-          "x0": 0,
-          "y0": 0,
-          "x1": 20
-        },
-        {
-          "x0": 20,
-          "y0": 0,
-          "y1": 20
-        },
-        {
-          "x0": 20,
-          "y0": 20,
-          "x1": 0
-        },
-        {
-          "x0": 0,
-          "y0": 0,
-          "y1": 20
-        }
-      ],
-      "buildings": [
-        {
-          "x": 5,
-          "y": 5,
-          "w": 30,
-          "h": 20
-        }
-      ],
-      "offices": [
-        {
-          "id": "o0",
-          "x": 40,
-          "y": 30,
-          "offsetX": 5,
-          "offsetY": 0
-        }
-      ]
-    },
-    {
       "dogSpeed": 4.0,
       "id": "map1",
       "name": "Map 1",
