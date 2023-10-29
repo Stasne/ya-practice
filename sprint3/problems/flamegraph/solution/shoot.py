@@ -74,7 +74,4 @@ stop(server)
 
 time.sleep(1)
 makeSvg()
-# time.sleep(1)
-# run('ls -la')
-# time.sleep(1)
 print('Job done')
