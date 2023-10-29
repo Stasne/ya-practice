@@ -53,7 +53,7 @@ def make_shots():
 
 
 def makeSvg():
-    command = "sudo perf script | ./FlameGraph/stackcollapse-perf.pl | ./FlameGraph/flamegraph.pl > graph.svg"
+    command = "perf script | ./FlameGraph/stackcollapse-perf.pl | ./FlameGraph/flamegraph.pl > graph.svg"
     process = subprocess.Popen(
         command,
         shell=True,
@@ -74,5 +74,6 @@ stop(perfProc)
 time.sleep(1)
 makeSvg()
 time.sleep(1)
-
+run('ls -la')
+time.sleep(1)
 print('Job done')
