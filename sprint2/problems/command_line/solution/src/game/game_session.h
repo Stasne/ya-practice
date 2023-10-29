@@ -21,9 +21,9 @@ public:
     GameSession(SessionConfiguration&& config);
     GameSession(const GameSession&) = delete;
     GameSession(GameSession&&) = delete;
-    std::string_view GetName() const noexcept { return config_.name; }
+    std::string_view GetName() const noexcept { return name_; }
     uint32_t GetId() const { return id_; }
-    const model::Map& GetMap() const { return config_.map; }
+    const model::Map& GetMap() const { return map_; }
 
     void AddDog(const spDog doge);
     void DogAction(uint32_t dogId, DogDirection action);
@@ -36,12 +36,13 @@ public:
 private:
     void UpdateDogsPosition(uint32_t tick_ms);
 
-    RealPoint BoundDogMovementToMap(const RealPoint start, const RealPoint& finish) const;
-
 private:
     uint32_t id_;
     Dogs dogs_;
-    SessionConfiguration config_;
+    std::string name_;
+    const model::Map& map_;
+    const double speed_;
+    const bool randomSpawn_;
 };
 
 using spGameSession = std::shared_ptr<GameSession>;
