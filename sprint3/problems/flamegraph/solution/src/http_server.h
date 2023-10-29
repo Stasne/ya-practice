@@ -9,7 +9,8 @@
 
 #include <iostream>
 
-namespace http_server {
+namespace http_server
+{
 
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
@@ -18,7 +19,8 @@ namespace http = beast::http;
 using namespace std::literals;
 namespace sys = boost::system;
 
-class SessionBase {
+class SessionBase
+{
 public:
     // Запрещаем копирование и присваивание объектов SessionBase и его наследников
     SessionBase(const SessionBase&) = delete;
@@ -30,24 +32,27 @@ protected:
     using HttpRequest = http::request<http::string_body>;
     ~SessionBase() = default;
     template <typename Body, typename Fields>
-    void Write(http::response<Body, Fields>&& response) {
+    void Write(http::response<Body, Fields>&& response)
+    {
         // Запись выполняется асинхронно, поэтому response перемещаем в область кучи
         auto safe_response = std::make_shared<http::response<Body, Fields>>(std::move(response));
 
         auto self = GetSharedThis();
         http::async_write(stream_, *safe_response,
-                          [safe_response, self](beast::error_code ec, std::size_t bytes_written) {
-                              self->OnWrite(safe_response->need_eof(), ec, bytes_written);
-                          });
+                          [safe_response, self](beast::error_code ec, std::size_t bytes_written)
+                          { self->OnWrite(safe_response->need_eof(), ec, bytes_written); });
     }
 
 private:
-    void OnWrite(bool close, beast::error_code ec, [[maybe_unused]] std::size_t bytes_written) {
-        if (ec) {
+    void OnWrite(bool close, beast::error_code ec, [[maybe_unused]] std::size_t bytes_written)
+    {
+        if (ec)
+        {
             return ReportError(ec, "write"sv);
         }
 
-        if (close) {
+        if (close)
+        {
             // Семантика ответа требует закрыть соединение
             return Close();
         }
@@ -55,7 +60,8 @@ private:
         // Считываем следующий запрос
         Read();
     }
-    void Read() {
+    void Read()
+    {
         using namespace std::literals;
         // Очищаем запрос от прежнего значения (метод Read может быть вызван несколько раз)
         request_ = {};
@@ -66,23 +72,28 @@ private:
                          beast::bind_front_handler(&SessionBase::OnRead, GetSharedThis()));
     }
 
-    void OnRead(beast::error_code ec, [[maybe_unused]] std::size_t bytes_read) {
+    void OnRead(beast::error_code ec, [[maybe_unused]] std::size_t bytes_read)
+    {
         using namespace std::literals;
-        if (ec == http::error::end_of_stream) {
+        if (ec == http::error::end_of_stream)
+        {
             // Нормальная ситуация - клиент закрыл соединение
             return Close();
         }
-        if (ec) {
+        if (ec)
+        {
             return ReportError(ec, "read"sv);
         }
         HandleRequest(std::move(request_));
     }
 
-    void Close() {
+    void Close()
+    {
         beast::error_code ec;
         stream_.socket().shutdown(tcp::socket::shutdown_send, ec);
     }
-    void ReportError(beast::error_code ec, std::string_view sv) {
+    void ReportError(beast::error_code ec, std::string_view sv)
+    {
         std::cout << sv << ": " << ec.message() << std::endl;
     }
     // Обработку запроса делегируем подклассу
@@ -97,14 +108,18 @@ private:
 };
 
 template <typename RequestHandler>
-class Session : public SessionBase, public std::enable_shared_from_this<Session<RequestHandler>> {
+class Session : public SessionBase, public std::enable_shared_from_this<Session<RequestHandler>>
+{
 public:
     template <typename Handler>
     Session(tcp::socket&& socket, Handler&& request_handler)
-        : SessionBase(std::move(socket)), request_handler_(std::forward<Handler>(request_handler)) {}
+        : SessionBase(std::move(socket)), request_handler_(std::forward<Handler>(request_handler))
+    {
+    }
 
 private:
-    void HandleRequest(HttpRequest&& request) override {
+    void HandleRequest(HttpRequest&& request) override
+    {
         // Захватываем умный указатель на текущий объект Session в лямбде,
         // чтобы продлить время жизни сессии до вызова лямбды.
         // Используется generic-лямбда функция, способная принять response произвольного типа
@@ -118,11 +133,13 @@ private:
 };
 
 template <typename RequestHandler>
-class Listener : public std::enable_shared_from_this<Listener<RequestHandler>> {
+class Listener : public std::enable_shared_from_this<Listener<RequestHandler>>
+{
 public:
     template <typename Handler>
     Listener(net::io_context& ioc, const tcp::endpoint& endpoint, Handler&& request_handler)
-        : ioc_(ioc), acceptor_(net::make_strand(ioc)), request_handler_(std::forward<Handler>(request_handler)) {
+        : ioc_(ioc), acceptor_(net::make_strand(ioc)), request_handler_(std::forward<Handler>(request_handler))
+    {
         // Открываем acceptor, используя протокол (IPv4 или IPv6), указанный в endpoint
         acceptor_.open(endpoint.protocol());
 
@@ -140,10 +157,12 @@ public:
     void Run() { DoAccept(); }
 
 private:
-    void AsyncRunSession(tcp::socket&& socket) {
+    void AsyncRunSession(tcp::socket&& socket)
+    {
         std::make_shared<Session<RequestHandler>>(std::move(socket), request_handler_)->Run();
     }
-    void DoAccept() {
+    void DoAccept()
+    {
         acceptor_.async_accept(
             // Передаём последовательный исполнитель, в котором будут вызываться обработчики
             // асинхронных операций сокета
@@ -160,9 +179,11 @@ private:
     }
 
     // Метод socket::async_accept создаст сокет и передаст его передан в OnAccept
-    void OnAccept(sys::error_code ec, tcp::socket socket) {
+    void OnAccept(sys::error_code ec, tcp::socket socket)
+    {
         using namespace std::literals;
-        if (ec) {
+        if (ec)
+        {
             return ReportError(ec, "accept"sv);
         }
 
@@ -172,7 +193,8 @@ private:
         // Принимаем новое соединение
         DoAccept();
     }
-    void ReportError(beast::error_code ec, std::string_view sv) {
+    void ReportError(beast::error_code ec, std::string_view sv)
+    {
         std::cout << sv << ": " << ec.message() << std::endl;
     }
 
@@ -183,10 +205,12 @@ private:
 };
 
 template <typename RequestHandler>
-void ServeHttp(net::io_context& ioc, const tcp::endpoint& endpoint, RequestHandler&& handler) {
+void ServeHttp(net::io_context& ioc, const tcp::endpoint& endpoint, RequestHandler&& handler)
+{
     // При помощи decay_t исключим ссылки из типа RequestHandler,
     // чтобы Listener хранил RequestHandler по значению
     using MyListener = Listener<std::decay_t<RequestHandler>>;
+
     std::make_shared<MyListener>(ioc, endpoint, std::forward<RequestHandler>(handler))->Run();
 }
 }  // namespace http_server
