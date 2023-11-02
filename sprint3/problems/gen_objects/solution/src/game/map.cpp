@@ -24,6 +24,12 @@ constexpr static auto H{"h"};
 
 constexpr static auto OffsetX{"offsetX"};
 constexpr static auto OffsetY{"offsetY"};
+
+constexpr static auto File{"file"};
+constexpr static auto Type{"type"};
+constexpr static auto Rotation{"rotation"};
+constexpr static auto Color{"color"};
+constexpr static auto Scale{"scale"};
 }  // namespace Fields
 
 Map::Roads Map::GetRoadsForPoint(const RealPoint& p) const noexcept {
@@ -103,7 +109,6 @@ Building tag_invoke(boost::json::value_to_tag<Building>, const boost::json::valu
 }
 
 void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Office& office) {
-
     boost::json::object obj;
     obj[Fields::Id] = *office.GetId();
     obj[Fields::X] = office.GetPosition().x;
@@ -180,4 +185,30 @@ Map tag_invoke(boost::json::value_to_tag<Map>, const boost::json::value& jv) {
 
     return map;
 }
+
+void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Loot& loot) {
+    boost::json::object obj;
+    obj[Fields::Name] = loot.name;
+    obj[Fields::File] = loot.file.string();
+    obj[Fields::Type] = loot.type;
+    obj[Fields::Rotation] = loot.rotation;
+    obj[Fields::Color] = loot.color;
+    obj[Fields::Scale] = loot.scale;
+    jv = std::move(obj);
+}
+
+Loot tag_invoke(boost::json::value_to_tag<Loot>, const boost::json::value& jv) {
+    if (!jv.is_object())
+        throw std::runtime_error("Expected anboost::json::object");
+
+    boost::json::object const& obj = jv.as_object();
+    auto name = std::string(obj.at(Fields::Name).as_string());
+    std::filesystem::path path(std::string(obj.at(Fields::File).as_string()));
+    auto type = std::string(obj.at(Fields::Type).as_string());
+    auto rotation = static_cast<uint32_t>(obj.at(Fields::Rotation).as_int64());
+    auto color = std::string(obj.at(Fields::Color).as_string());
+    auto scale = obj.at(Fields::Scale).as_double();
+    return {name, path, type, rotation, color, scale};
+}
+
 }  // namespace model

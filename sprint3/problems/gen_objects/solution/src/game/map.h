@@ -2,6 +2,7 @@
 #include <tagged.h>
 #include <boost/json.hpp>
 #include <boost/json/value_to.hpp>
+#include <filesystem>
 #include <optional>
 #include <random>
 #include <string>
@@ -9,6 +10,15 @@
 #include <vector>
 
 namespace model {
+
+struct Loot {
+    std::string name;
+    std::filesystem::path file;
+    std::string type;  // string?
+    uint32_t rotation;
+    std::string color;  //string?
+    double scale;
+};
 
 using Dimension = int;
 using Coord = Dimension;
@@ -187,4 +197,6 @@ void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Road&
 Road tag_invoke(boost::json::value_to_tag<Road>, const boost::json::value& jv);
 void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Building& building);
 Building tag_invoke(boost::json::value_to_tag<Building>, const boost::json::value& jv);
+void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Loot& building);
+Loot tag_invoke(boost::json::value_to_tag<Loot>, const boost::json::value& jv);
 }  //namespace model
