@@ -53,24 +53,7 @@ struct Rectangle {
 struct Offset {
     Dimension dx, dy;
 };
-static double bound(const double first, const double second, const double value) {
-    double lower = std::min(first, second);
-    double upper = std::max(first, second);
 
-    double result;
-    result = std::min(upper, value);
-    result = std::max(lower, result);
-    return result;
-}
-static uint32_t bound(const uint32_t first, const uint32_t second, const uint32_t value) {
-    uint32_t lower = std::min(first, second);
-    uint32_t upper = std::max(first, second);
-
-    uint32_t result;
-    result = std::min(upper, value);
-    result = std::max(lower, result);
-    return result;
-}
 static const double RoadWidth{0.4};
 class Road {
     struct HorizontalTag {
@@ -113,8 +96,8 @@ public:
     }
     RealPoint FitPointToRoad(const RealPoint& point) const {
         auto boundPoint = point;
-        boundPoint.x = bound(lbotX_, rtopX_, boundPoint.x);
-        boundPoint.y = bound(lbotY_, rtopY_, boundPoint.y);
+        boundPoint.x = std::clamp(boundPoint.x, lbotX_, rtopX_);
+        boundPoint.y = std::clamp(boundPoint.y, lbotY_, rtopY_);
         return boundPoint;
     }
 
@@ -161,6 +144,7 @@ public:
     using Roads = std::vector<Road>;
     using Buildings = std::vector<Building>;
     using Offices = std::vector<Office>;
+    using Loots = std::vector<Loot>;
 
     Map(Id id, std::string name, std::optional<double> dogSpeed = {}) noexcept
         : id_(std::move(id)), name_(std::move(name)), speed_(dogSpeed) {}
@@ -171,10 +155,11 @@ public:
     const Buildings& GetBuildings() const noexcept { return buildings_; }
     const Roads& GetRoads() const noexcept { return roads_; }
     const Offices& GetOffices() const noexcept { return offices_; }
-
+    const Loots& GetLootTypes() const noexcept { return loot_; }
     void AddRoad(const Road& road) { roads_.emplace_back(road); }
     void AddBuilding(const Building& building) { buildings_.emplace_back(building); }
     void AddOffice(Office office);
+    void AddLoot(Loot loot) { loot_.emplace_back(loot); }
     Roads GetRoadsForPoint(const RealPoint& p) const noexcept;
 
 private:
@@ -183,6 +168,7 @@ private:
     std::optional<double> speed_;
     Roads roads_;
     Buildings buildings_;
+    Loots loot_;
 
     using OfficeIdToIndex = std::unordered_map<Office::Id, size_t, util::TaggedHasher<Office::Id>>;
     OfficeIdToIndex warehouse_id_to_index_;

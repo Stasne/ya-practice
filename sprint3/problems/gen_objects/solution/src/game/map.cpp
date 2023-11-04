@@ -11,6 +11,7 @@ constexpr static auto DogSpeed{"dogSpeed"};
 constexpr static auto Buildings{"buildings"};
 constexpr static auto Roads{"roads"};
 constexpr static auto Offices{"offices"};
+constexpr static auto Loot{"lootTypes"};
 
 constexpr static auto X{"x"};
 constexpr static auto Y{"y"};
@@ -162,7 +163,7 @@ void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Map& 
 
 Map tag_invoke(boost::json::value_to_tag<Map>, const boost::json::value& jv) {
     if (!jv.is_object())
-        throw std::runtime_error("Expected anboost::json::object");
+        throw std::runtime_error("Expected a boost::json::object");
 
     boost::json::object const& obj = jv.as_object();
     Map::Id id(std::string(obj.at(Fields::Id).as_string()));
@@ -182,7 +183,11 @@ Map tag_invoke(boost::json::value_to_tag<Map>, const boost::json::value& jv) {
     for (const auto& office_value : obj.at(Fields::Offices).as_array()) {
         map.AddOffice(value_to<Office>(office_value));
     }
-
+    for (const auto& loot : obj.at(Fields::Loot).as_array()) {
+        map.AddLoot(value_to<Loot>(loot));
+    }
+    if (!map.GetLootTypes().size())
+        throw std::runtime_error("No loot specified for map " + map.GetName());
     return map;
 }
 
