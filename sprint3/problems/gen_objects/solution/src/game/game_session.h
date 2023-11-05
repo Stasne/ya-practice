@@ -1,7 +1,7 @@
 #pragma once
-#include <dog.h>
 #include <iostream>
-
+#include "dog.h"
+#include "loot_generator.h"
 namespace model {
 class Map;
 class Road;
@@ -14,6 +14,8 @@ struct SessionConfiguration {
     const model::Map& map;
     const double speed;
     const bool randomSpawnPoint;
+    const uint32_t randomGeneratorPeriod;
+    const double randomGeneratorProbability;
 };
 
 class GameSession {
@@ -35,6 +37,7 @@ public:
 
 private:
     void UpdateDogsPosition(uint32_t tick_ms);
+    void SpawnLoot(uint32_t tick_ms);
 
 private:
     uint32_t id_;
@@ -43,6 +46,9 @@ private:
     const model::Map& map_;
     const double speed_;
     const bool randomSpawn_;
+    loot_gen::LootGenerator lootGen_;
+    using LootPositions = std::unordered_map<uint32_t, model::MapLoot>;
+    LootPositions lootPositions_;
 };
 
 using spGameSession = std::shared_ptr<GameSession>;

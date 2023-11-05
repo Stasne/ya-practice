@@ -11,15 +11,6 @@
 
 namespace model {
 
-struct Loot {
-    std::string name;
-    std::filesystem::path file;
-    std::string type;  // string?
-    uint32_t rotation;
-    std::string color;  //string?
-    double scale;
-};
-
 using Dimension = int;
 using Coord = Dimension;
 using Real = double;
@@ -53,7 +44,18 @@ struct Rectangle {
 struct Offset {
     Dimension dx, dy;
 };
-
+struct Loot {
+    std::string name;
+    std::filesystem::path file;
+    std::string type;  // string?
+    uint32_t rotation;
+    std::string color;  //string?
+    double scale;
+};
+struct MapLoot {
+    RealPoint pos;
+    uint32_t type;
+};
 static const double RoadWidth{0.4};
 class Road {
     struct HorizontalTag {

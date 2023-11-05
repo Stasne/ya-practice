@@ -37,20 +37,31 @@ void LoadMaps(const boost::json::value& jv, model::Game& game) {
         game.AddMap(value_to<Map>(map));
     }
 }
+std::tuple<double, double> extractLootGeneratorParameters(boost::json::object& mapObj) {
+    if (!mapObj.contains("lootGeneratorConfig"))
+        throw std::runtime_error("No 'lootGeneratorConfig' found in game paramters");
+    if (!mapObj.contains("period"))
+        throw std::runtime_error("No 'lootGeneratorConfig:period' found in game paramters");
+    if (!mapObj.contains("probability"))
+        throw std::runtime_error("No 'lootGeneratorConfig:probability' found in game paramters");
 
+    return {mapObj["period"].as_double(), mapObj["probability"].as_double()};
+}
+namespace {}
 model::Game LoadGame(const std::filesystem::path& json_path) {
 
     model::Game game;
 
     auto file_content = FileToString(json_path);
     auto jv = JsonStringToObjec(file_content);
+    auto jobj = jv.get_object();
+    if (!jobj.contains("defaultDogSpeed"))
+        throw std::runtime_error("No 'defaultDogSpeed' found in game paramters");
 
-    if (!jv.get_object().contains("defaultDogSpeed")) {
-        //?
-        game.SetDefaultDogSpeed(4.5);
-    }
-    auto speed = jv.get_object()["defaultDogSpeed"].as_double();
+    auto speed = jobj["defaultDogSpeed"].as_double();
     game.SetDefaultDogSpeed(speed);
+    const auto [period, probability] = extractLootGeneratorParameters(jobj);
+    game.SetRandomGeneratorConfig(period, probability);
     LoadMaps(jv, game);
 
     return game;

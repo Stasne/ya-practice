@@ -47,6 +47,10 @@ public:
     }
     void SetDefaultDogSpeed(double speed) { defaultSpeed_ = speed; }
     void SetRandomSpawnPoint(bool isRandom = false) { randomSpawn_ = isRandom; }
+    void SetRandomGeneratorConfig(double period = 5.0, double probability = 0.5) {
+        randomGeneratorPeriod_ = period;
+        randomGeneratorProbability_ = probability;
+    }
 
 private:
     using MapIdHasher = util::TaggedHasher<Map::Id>;
@@ -58,6 +62,8 @@ private:
     Players players_;
     double defaultSpeed_;
     bool randomSpawn_ = false;
+    double randomGeneratorPeriod_;
+    double randomGeneratorProbability_;
 };
 
 }  // namespace model

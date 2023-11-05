@@ -1,5 +1,6 @@
 #include "game_session.h"
 #include <map.h>
+#include <random>
 namespace {
 static uint32_t SessionId{0};
 }
@@ -25,7 +26,7 @@ RealPoint BoundDogMovementToMap(const RealPoint start, const RealPoint& finish, 
     return tmpNextPoint;
 }
 
-RealPoint GetSpawnPoint(const Map& map, bool isRandom) {
+RealPoint GetNextMapPoint(const Map& map, bool isRandom = true) {
     auto& roads = map.GetRoads();
     if (!roads.size())
         return {0, 0};
@@ -35,9 +36,9 @@ RealPoint GetSpawnPoint(const Map& map, bool isRandom) {
 
     static uint32_t seed{0};
     auto& chosenRoad = roads[seed++ % roads.size()];
-
-    return {static_cast<double>(bound(chosenRoad.GetStart().x, chosenRoad.GetEnd().x, seed)),
-            static_cast<double>(bound(chosenRoad.GetStart().y, chosenRoad.GetEnd().y, seed))};
+    auto spawnX = seed % std::abs(chosenRoad.GetStart().x - chosenRoad.GetEnd().x);
+    auto spawnY = seed % std::abs(chosenRoad.GetStart().y - chosenRoad.GetEnd().y);
+    return {static_cast<double>(spawnX), static_cast<double>(spawnY)};
 }
 
 GameSession::GameSession(SessionConfiguration&& config)
@@ -45,25 +46,29 @@ GameSession::GameSession(SessionConfiguration&& config)
       name_(config.name.empty() ? config.map.GetName() + '_' + std::to_string(id_) : config.name),
       map_(config.map),
       speed_(config.speed),
-      randomSpawn_(config.randomSpawnPoint) {}
+      randomSpawn_(config.randomSpawnPoint),
+      lootGen_(std::chrono::milliseconds(config.randomGeneratorPeriod), config.randomGeneratorProbability) {}
 
 void GameSession::AddDog(const spDog doge) {
     dogs_.push_back(doge);
-    auto mapSpawnPoint = GetSpawnPoint(map_, randomSpawn_);
+    auto mapSpawnPoint = GetNextMapPoint(map_, randomSpawn_);
     dogs_.back()->SetPosition(mapSpawnPoint);
     auto roadsForPoint = map_.GetRoadsForPoint(mapSpawnPoint);
 }
 
 void GameSession::DogAction(uint32_t dogId, DogDirection action) {
     auto foundDog = std::find_if(dogs_.begin(), dogs_.end(), [dogId](auto& dog) { return dog->Id() == dogId; });
-    if (foundDog == dogs_.end()) {
+    if (foundDog == dogs_.end())
         return;
-    }
+
     (*foundDog)->SetDirection(action, speed_);
 }
 
 void GameSession::UpdateState(uint32_t tick_ms) {
     UpdateDogsPosition(tick_ms);
+    //pick loot (if possible)
+    //remove picked loot
+    SpawnLoot(tick_ms);
 }
 void GameSession::UpdateDogsPosition(uint32_t tick_ms) {
     for (auto& spdog : dogs_) {
@@ -72,6 +77,25 @@ void GameSession::UpdateDogsPosition(uint32_t tick_ms) {
         spdog->SetPosition(boundPoint);
         if (boundPoint != estimatePosition)
             spdog->SetSpeed(0);
+    }
+}
+void GameSession::SpawnLoot(uint32_t tick_ms) {
+    auto lootToSpawn = lootGen_.Generate(std::chrono::milliseconds(tick_ms), lootPositions_.size(), dogs_.size());
+    if (!lootToSpawn)
+        return;
+
+    auto GenerateRandomLootType = [](size_t typesCount) -> uint32_t {
+        std::random_device dev;
+        std::mt19937 rng(dev());
+        std::uniform_int_distribution<std::mt19937::result_type> dist6(0, typesCount);  // distribution in range [1, 6]
+        return dist6(rng);
+    };
+
+    static uint32_t lootNum;
+    for (auto i = 0; i < lootToSpawn; +i) {
+        auto lootType = GenerateRandomLootType(map_.GetLootTypes().size());
+
+        lootPositions_.insert({lootNum++, {GetNextMapPoint(map_), lootType}});
     }
 }
 

@@ -27,7 +27,10 @@ spGameSession Game::StartGame(const Map& map, std::string_view name) {
     double sessionSpeed = defaultSpeed_;
     if (map.GetMapSpeed())
         sessionSpeed = *map.GetMapSpeed();
-    game::SessionConfiguration config(std::string(name), map, sessionSpeed, randomSpawn_);
+
+    game::SessionConfiguration config(std::string(name), map, sessionSpeed, randomSpawn_, randomGeneratorPeriod_,
+                                      randomGeneratorProbability_);
+
     sessions_.emplace_back(std::make_shared<GameSession>(std::move(config)));
     return sessions_.back();  //Т.к. на работу с апи стоит мьютекс, то безопасно
 }

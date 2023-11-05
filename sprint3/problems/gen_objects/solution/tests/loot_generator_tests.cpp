@@ -1,7 +1,7 @@
-#include <cmath>
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
 
-#include "../src/loot_generator.h"
+#include <loot_generator.h>
 
 using namespace std::literals;
 
@@ -49,9 +49,8 @@ SCENARIO("Loot generation") {
 
         WHEN("time is less than base interval") {
             THEN("number of generated loot is decreased") {
-                const auto time_interval
-                    = std::chrono::duration_cast<TimeInterval>(std::chrono::duration<double>{
-                        1.0 / (std::log(1 - 0.5) / std::log(1.0 - 0.25))});
+                const auto time_interval = std::chrono::duration_cast<TimeInterval>(
+                    std::chrono::duration<double>{1.0 / (std::log(1 - 0.5) / std::log(1.0 - 0.25))});
                 CHECK(gen.Generate(time_interval, 0, 4) == 1);
             }
         }
@@ -63,9 +62,8 @@ SCENARIO("Loot generation") {
                           }};
         WHEN("loot is generated") {
             THEN("number of loot is proportional to random generated values") {
-                const auto time_interval
-                    = std::chrono::duration_cast<TimeInterval>(std::chrono::duration<double>{
-                        1.0 / (std::log(1 - 0.5) / std::log(1.0 - 0.25))});
+                const auto time_interval = std::chrono::duration_cast<TimeInterval>(
+                    std::chrono::duration<double>{1.0 / (std::log(1 - 0.5) / std::log(1.0 - 0.25))});
                 CHECK(gen.Generate(time_interval, 0, 4) == 0);
                 CHECK(gen.Generate(time_interval, 0, 4) == 1);
             }
