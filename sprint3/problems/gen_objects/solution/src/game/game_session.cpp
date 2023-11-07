@@ -40,13 +40,15 @@ RealPoint GetNextMapPoint(const Map& map, bool isRandom = true) {
         return {static_cast<double>(roads.front().GetStart().x), static_cast<double>(roads.front().GetStart().y)};
 
     static uint32_t seed{0};
-    auto& chosenRoad = roads[GenerateRandomUint(roads.size())];
+    const auto& chosenRoad = roads[GenerateRandomUint(roads.size())];
     uint32_t lowestX = std::min(chosenRoad.GetStart().x, chosenRoad.GetEnd().x);
     uint32_t highestX = std::max(chosenRoad.GetStart().x, chosenRoad.GetEnd().x);
     uint32_t lowestY = std::min(chosenRoad.GetStart().y, chosenRoad.GetEnd().y);
     uint32_t highestY = std::max(chosenRoad.GetStart().y, chosenRoad.GetEnd().y);
-    auto spawnX = std::clamp(lowestX + GenerateRandomUint(highestX - lowestX), lowestX, highestX);
-    auto spawnY = std::clamp(lowestY + GenerateRandomUint(highestY - lowestY), lowestY, highestY);
+
+    uint32_t roadLength = std::max(highestX - lowestX, highestY - lowestY);
+    auto spawnX = std::clamp(lowestX + GenerateRandomUint(roadLength), lowestX, highestX);
+    auto spawnY = std::clamp(lowestY + GenerateRandomUint(roadLength), lowestY, highestY);
     return {static_cast<double>(spawnX), static_cast<double>(spawnY)};
 }
 
@@ -56,7 +58,7 @@ GameSession::GameSession(SessionConfiguration&& config)
       map_(config.map),
       speed_(config.speed),
       randomSpawn_(config.randomSpawnPoint),
-      lootGen_(std::chrono::milliseconds(config.randomGeneratorPeriod), config.randomGeneratorProbability) {}
+      lootGen_(std::chrono::seconds(config.randomGeneratorPeriod), config.randomGeneratorProbability) {}
 
 void GameSession::AddDog(const spDog doge) {
     dogs_.push_back(doge);
@@ -94,7 +96,7 @@ void GameSession::SpawnLoot(uint32_t tick_ms) {
         return;
 
     static uint32_t lootNum;
-    for (auto i = 0; i < lootToSpawn; +i) {
+    for (auto i = 0; i < lootToSpawn; ++i) {
         auto lootType = GenerateRandomUint(map_.GetLootTypes().size());
 
         lootPositions_.insert({lootNum++, {GetNextMapPoint(map_), lootType}});
