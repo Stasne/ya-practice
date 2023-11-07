@@ -33,6 +33,8 @@ public:
     using Dogs = std::vector<spDog>;
     const Dogs& GetPlayingDogs() const { return dogs_; }
 
+    using LootPositions = std::unordered_map<uint32_t, model::MapLoot>;
+    const LootPositions& GetLoot() const { return lootPositions_; }
     void UpdateState(uint32_t tick_ms);
 
 private:
@@ -47,7 +49,6 @@ private:
     const double speed_;
     const bool randomSpawn_;
     loot_gen::LootGenerator lootGen_;
-    using LootPositions = std::unordered_map<uint32_t, model::MapLoot>;
     LootPositions lootPositions_;
 };
 

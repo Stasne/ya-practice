@@ -34,7 +34,7 @@ public:
 
         if (boost::starts_with(croppedTarget, Endpoint::MAPS))  //map request
         {
-            return send(apiRoutes_.at(Endpoint::MAP)(std::move(req)));
+            return send(apiRoutes_.at(Endpoint::MAPS)(std::move(req)));
         }
         if (boost::starts_with(croppedTarget, Endpoint::API))  //api request
         {

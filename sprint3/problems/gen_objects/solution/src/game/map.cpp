@@ -210,8 +210,8 @@ Loot tag_invoke(boost::json::value_to_tag<Loot>, const boost::json::value& jv) {
     auto name = std::string(obj.at(Fields::Name).as_string());
     std::filesystem::path path(std::string(obj.at(Fields::File).as_string()));
     auto type = std::string(obj.at(Fields::Type).as_string());
-    auto rotation = static_cast<uint32_t>(obj.at(Fields::Rotation).as_int64());
-    auto color = std::string(obj.at(Fields::Color).as_string());
+    auto rotation = (obj.contains(Fields::Rotation) ? static_cast<uint32_t>(obj.at(Fields::Rotation).as_int64()) : 0);
+    auto color = (obj.contains(Fields::Color) ? std::string(obj.at(Fields::Color).as_string()) : "");
     auto scale = obj.at(Fields::Scale).as_double();
     return {name, path, type, rotation, color, scale};
 }

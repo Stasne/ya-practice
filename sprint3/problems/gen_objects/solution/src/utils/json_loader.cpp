@@ -40,16 +40,16 @@ void LoadMaps(const boost::json::value& jv, model::Game& game) {
 std::tuple<double, double> extractLootGeneratorParameters(boost::json::object& mapObj) {
     if (!mapObj.contains("lootGeneratorConfig"))
         throw std::runtime_error("No 'lootGeneratorConfig' found in game paramters");
-    if (!mapObj.contains("period"))
+    boost::json::object lootGenConfig = mapObj["lootGeneratorConfig"].as_object();
+    if (!lootGenConfig.contains("period"))
         throw std::runtime_error("No 'lootGeneratorConfig:period' found in game paramters");
-    if (!mapObj.contains("probability"))
+    if (!lootGenConfig.contains("probability"))
         throw std::runtime_error("No 'lootGeneratorConfig:probability' found in game paramters");
 
-    return {mapObj["period"].as_double(), mapObj["probability"].as_double()};
+    return {lootGenConfig["period"].as_double(), lootGenConfig["probability"].as_double()};
 }
-namespace {}
-model::Game LoadGame(const std::filesystem::path& json_path) {
 
+model::Game LoadGame(const std::filesystem::path& json_path) {
     model::Game game;
 
     auto file_content = FileToString(json_path);

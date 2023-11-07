@@ -6,7 +6,12 @@ static uint32_t SessionId{0};
 }
 using namespace model;
 namespace game {
-
+uint32_t GenerateRandomUint(size_t max) {
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<std::mt19937::result_type> dist6(0, max);
+    return dist6(rng);
+};
 RealPoint BoundDogMovementToMap(const RealPoint start, const RealPoint& finish, const Map& map) {
     auto possibleRoads = map.GetRoadsForPoint(start);
 
@@ -35,9 +40,13 @@ RealPoint GetNextMapPoint(const Map& map, bool isRandom = true) {
         return {static_cast<double>(roads.front().GetStart().x), static_cast<double>(roads.front().GetStart().y)};
 
     static uint32_t seed{0};
-    auto& chosenRoad = roads[seed++ % roads.size()];
-    auto spawnX = seed % std::abs(chosenRoad.GetStart().x - chosenRoad.GetEnd().x);
-    auto spawnY = seed % std::abs(chosenRoad.GetStart().y - chosenRoad.GetEnd().y);
+    auto& chosenRoad = roads[GenerateRandomUint(roads.size())];
+    uint32_t lowestX = std::min(chosenRoad.GetStart().x, chosenRoad.GetEnd().x);
+    uint32_t highestX = std::max(chosenRoad.GetStart().x, chosenRoad.GetEnd().x);
+    uint32_t lowestY = std::min(chosenRoad.GetStart().y, chosenRoad.GetEnd().y);
+    uint32_t highestY = std::max(chosenRoad.GetStart().y, chosenRoad.GetEnd().y);
+    auto spawnX = std::clamp(lowestX + GenerateRandomUint(highestX - lowestX), lowestX, highestX);
+    auto spawnY = std::clamp(lowestY + GenerateRandomUint(highestY - lowestY), lowestY, highestY);
     return {static_cast<double>(spawnX), static_cast<double>(spawnY)};
 }
 
@@ -84,16 +93,9 @@ void GameSession::SpawnLoot(uint32_t tick_ms) {
     if (!lootToSpawn)
         return;
 
-    auto GenerateRandomLootType = [](size_t typesCount) -> uint32_t {
-        std::random_device dev;
-        std::mt19937 rng(dev());
-        std::uniform_int_distribution<std::mt19937::result_type> dist6(0, typesCount);  // distribution in range [1, 6]
-        return dist6(rng);
-    };
-
     static uint32_t lootNum;
     for (auto i = 0; i < lootToSpawn; +i) {
-        auto lootType = GenerateRandomLootType(map_.GetLootTypes().size());
+        auto lootType = GenerateRandomUint(map_.GetLootTypes().size());
 
         lootPositions_.insert({lootNum++, {GetNextMapPoint(map_), lootType}});
     }

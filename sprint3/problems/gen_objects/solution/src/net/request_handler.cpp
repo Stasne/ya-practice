@@ -149,15 +149,23 @@ StringResponse RequestHandler::GetGameState(const Token& token, std::string_view
     if (!session)
         return http_handler::Response::MakeErrorUnknownToken("No game session was found for u");
 
-    boost::json::object jObject;
-    auto dogs = session->GetPlayingDogs();
+    boost::json::object jObjectPlayers;
+    const auto& dogs = session->GetPlayingDogs();
     for (const auto& dog : dogs) {
-        jObject[to_string(dog->Id())] = utils::serialization::ToJsonObject(*dog);
+        jObjectPlayers[to_string(dog->Id())] = utils::serialization::ToJsonObject(*dog);
+    }
+    boost::json::object jObjectLoot;
+    const auto& mapLoot = session->GetLoot();
+
+    size_t lootNum{0};
+    for (const auto& loot : mapLoot) {
+        jObjectLoot[to_string(lootNum++)] = utils::serialization::ToJsonObject(loot.second);
     }
 
     auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
     boost::json::object jFinal;
-    jFinal["players"] = jObject;
+    jFinal["players"] = jObjectPlayers;
+    jFinal["lostObjects"] = jObjectLoot;
     return Response::Make(http::status::ok, boost::json::serialize(boost::json::value(jFinal)), content_type);
 }
 
