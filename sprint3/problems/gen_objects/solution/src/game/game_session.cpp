@@ -7,9 +7,11 @@ static uint32_t SessionId{0};
 using namespace model;
 namespace game {
 uint32_t GenerateRandomUint(size_t max) {
+    if (max == 1)
+        return 0;
     std::random_device dev;
     std::mt19937 rng(dev());
-    std::uniform_int_distribution<std::mt19937::result_type> dist6(0, max);
+    std::uniform_int_distribution<std::mt19937::result_type> dist6(0, max - 1);
     return dist6(rng);
 };
 RealPoint BoundDogMovementToMap(const RealPoint start, const RealPoint& finish, const Map& map) {

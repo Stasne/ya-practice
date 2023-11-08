@@ -1,4 +1,5 @@
 #pragma once
+
 #include <tagged.h>
 #include <boost/json.hpp>
 #include <boost/json/value_to.hpp>
@@ -48,8 +49,8 @@ struct Loot {
     std::string name;
     std::filesystem::path file;
     std::string type;  // string?
-    uint32_t rotation;
-    std::string color;  //string?
+    std::optional<uint32_t> rotation;
+    std::optional<std::string> color;  //string?
     double scale;
 };
 struct MapLoot {

@@ -138,22 +138,24 @@ void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Map& 
     boost::json::array roads;
     boost::json::array buildings;
     boost::json::array offices;
-
-    obj[Fields::Id] = *map.GetId();
-    obj[Fields::Name] = map.GetName();
+    boost::json::array lootTypes;
 
     for (const auto& road : map.GetRoads()) {
         roads.push_back(boost::json::value_from(road));
     }
-
     for (const auto& building : map.GetBuildings()) {
         buildings.push_back(boost::json::value_from(building));
     }
-
     for (const auto& office : map.GetOffices()) {
         offices.push_back(boost::json::value_from(office));
     }
+    for (const auto& loot : map.GetLootTypes()) {
+        lootTypes.push_back(boost::json::value_from(loot));
+    }
 
+    obj[Fields::Id] = *map.GetId();
+    obj[Fields::Name] = map.GetName();
+    obj[Fields::Loot] = std::move(lootTypes);
     obj[Fields::Roads] = std::move(roads);
     obj[Fields::Buildings] = std::move(buildings);
     obj[Fields::Offices] = std::move(offices);
@@ -196,8 +198,10 @@ void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Loot&
     obj[Fields::Name] = loot.name;
     obj[Fields::File] = loot.file.string();
     obj[Fields::Type] = loot.type;
-    obj[Fields::Rotation] = loot.rotation;
-    obj[Fields::Color] = loot.color;
+    if (loot.rotation)
+        obj[Fields::Rotation] = *loot.rotation;
+    if (loot.color)
+        obj[Fields::Color] = *loot.color;
     obj[Fields::Scale] = loot.scale;
     jv = std::move(obj);
 }
@@ -210,8 +214,12 @@ Loot tag_invoke(boost::json::value_to_tag<Loot>, const boost::json::value& jv) {
     auto name = std::string(obj.at(Fields::Name).as_string());
     std::filesystem::path path(std::string(obj.at(Fields::File).as_string()));
     auto type = std::string(obj.at(Fields::Type).as_string());
-    auto rotation = (obj.contains(Fields::Rotation) ? static_cast<uint32_t>(obj.at(Fields::Rotation).as_int64()) : 0);
-    auto color = (obj.contains(Fields::Color) ? std::string(obj.at(Fields::Color).as_string()) : "");
+    std::optional<uint32_t> rotation;
+    if (obj.contains(Fields::Rotation))
+        rotation = static_cast<uint32_t>(obj.at(Fields::Rotation).as_int64());
+    std::optional<std::string> color;
+    if (obj.contains(Fields::Color))
+        color = std::string(obj.at(Fields::Color).as_string());
     auto scale = obj.at(Fields::Scale).as_double();
     return {name, path, type, rotation, color, scale};
 }
