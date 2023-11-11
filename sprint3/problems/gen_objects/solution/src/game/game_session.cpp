@@ -66,7 +66,6 @@ void GameSession::AddDog(const spDog doge) {
     dogs_.push_back(doge);
     auto mapSpawnPoint = GetNextMapPoint(map_, randomSpawn_);
     dogs_.back()->SetPosition(mapSpawnPoint);
-    auto roadsForPoint = map_.GetRoadsForPoint(mapSpawnPoint);
 }
 
 void GameSession::DogAction(uint32_t dogId, DogDirection action) {
@@ -96,11 +95,9 @@ void GameSession::SpawnLoot(uint32_t tick_ms) {
     auto lootToSpawn = lootGen_.Generate(std::chrono::milliseconds(tick_ms), lootPositions_.size(), dogs_.size());
     if (!lootToSpawn)
         return;
-
     static uint32_t lootNum;
     for (auto i = 0; i < lootToSpawn; ++i) {
         auto lootType = GenerateRandomUint(map_.GetLootTypes().size());
-
         lootPositions_.insert({lootNum++, {GetNextMapPoint(map_), lootType}});
     }
 }

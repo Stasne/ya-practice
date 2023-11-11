@@ -10,9 +10,7 @@ public:
     /*
      * Возвращает информацию о том, включен телевизор или нет.
      */
-    [[nodiscard]] bool IsTurnedOn() const noexcept {
-        return is_turned_on_;
-    }
+    [[nodiscard]] bool IsTurnedOn() const noexcept { return is_turned_on_; }
 
     /*
      * Возвращает номер выбранного канала или std::nullopt, если телевизор выключен.
@@ -26,16 +24,12 @@ public:
      * При включении выбирается тот номер канала, который был выбран перед последним выключением.
      * При самом первом включении выбирает канал #1.
      */
-    void TurnOn() noexcept {
-        is_turned_on_ = true;
-    }
+    void TurnOn() noexcept { is_turned_on_ = true; }
 
     /*
      * Выключает телевизор, если он был включен. Если телевизор уже выключен, ничего не делает.
      */
-    void TurnOff() noexcept {
-        is_turned_on_ = false;
-    }
+    void TurnOff() noexcept { is_turned_on_ = false; }
 
     /*
      * Выбирает канал channel.
@@ -46,7 +40,15 @@ public:
      */
     void SelectChannel(int channel) {
         /* Реализуйте самостоятельно этот метод и напишите тесты для него */
-        assert(!"TODO: Implement TV::SelectChannel");
+        if (!IsTurnedOn())
+            throw std::logic_error("TV is off");
+        if (channel == channel_)
+            return;
+        if (channel > MAX_CHANNEL or channel < MIN_CHANNEL)
+            throw std::out_of_range("Channel out of range");
+
+        prevChannel_ = channel_;
+        channel_ = channel;
     }
 
     /*
@@ -55,11 +57,14 @@ public:
      * Если телевизор выключен, выбрасывает исключение std::logic_error.
      */
     void SelectLastViewedChannel() {
-        /* Реализуйте самостоятельно этот метод и напишите тесты для него */
-        assert(!"TODO: Implement TV::SelectLastViewedChannel");
+        if (!IsTurnedOn())
+            throw std::logic_error("TV is off");
+
+        std::swap(channel_, prevChannel_);
     }
 
 private:
     bool is_turned_on_ = false;
     int channel_ = 1;
+    int prevChannel_ = 1;
 };

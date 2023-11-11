@@ -15,21 +15,17 @@ TEST_F(TVByDefault, DoesntShowAChannelWhenItIsOff) {
     EXPECT_FALSE(tv_.GetChannel().has_value());
 }
 // Включите этот тест и доработайте класс TV, чтобы тест выполнился успешно
-#if 0
 TEST_F(TVByDefault, CantSelectAnyChannel) {
     EXPECT_THROW(tv_.SelectChannel(10), std::logic_error);
     EXPECT_EQ(tv_.GetChannel(), std::nullopt);
     tv_.TurnOn();
     EXPECT_THAT(tv_.GetChannel(), testing::Optional(1));
 }
-#endif
 
 // Тестовый стенд "Включенный телевизор"
 class TurnedOnTV : public TVByDefault {
 protected:
-    void SetUp() override {
-        tv_.TurnOn();
-    }
+    void SetUp() override { tv_.TurnOn(); }
 };
 TEST_F(TurnedOnTV, ShowsChannel1) {
     EXPECT_TRUE(tv_.IsTurnedOn());
@@ -42,6 +38,19 @@ TEST_F(TurnedOnTV, AfterTurningOffTurnsOffAndDoesntShowAnyChannel) {
     EXPECT_EQ(tv_.GetChannel(), std::nullopt);
 }
 TEST_F(TurnedOnTV, CanSelectChannelFrom1To99) {
-    /* Реализуйте самостоятельно этот тест */
+    tv_.SelectChannel(99);
+    EXPECT_THAT(tv_.GetChannel(), testing::Optional(99));
+    tv_.SelectChannel(1);
+    EXPECT_THAT(tv_.GetChannel(), testing::Optional(1));
+}
+TEST_F(TurnedOnTV, ExceptionOn1or100Channel) {
+    EXPECT_THROW(tv_.SelectChannel(100), std::out_of_range);
+    EXPECT_THROW(tv_.SelectChannel(0), std::out_of_range);
+}
+TEST_F(TurnedOnTV, PreviousChannelCheck) {
+    tv_.SelectChannel(87);
+    tv_.SelectChannel(12);
+    tv_.SelectLastViewedChannel();
+    EXPECT_THAT(tv_.GetChannel(), testing::Optional(87));
 }
 /* Реализуйте самостоятельно остальные тесты класса TV */

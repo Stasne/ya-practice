@@ -26,6 +26,7 @@ option(BUILD_TESTS "Build test programs" ON)
 
 if (BUILD_TESTS)
     file (GLOB_RECURSE TEST_SOURCES
+                    "tests/game_loot_tests.cpp" 	
                     "tests/loot_generator_tests.cpp" 	
                     "src/game/*.cpp" "src/game/*.h"
                     "src/net/*.cpp" "src/net/*.h"

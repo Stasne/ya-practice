@@ -5,8 +5,8 @@
 namespace model {
 class Map;
 class Road;
-
 }  // namespace model
+
 namespace game {
 
 struct SessionConfiguration {
