@@ -1,0 +1,51 @@
+cmake_minimum_required(VERSION 3.11)
+
+project(game_server CXX)
+set(CMAKE_CXX_STANDARD 20)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo_multi.cmake)
+conan_basic_setup(TARGETS)
+
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+
+find_package(Threads REQUIRED)
+
+add_subdirectory(src/model)
+
+file (GLOB_RECURSE SOURCES 	"src/*.cpp" "src/*.h")
+
+add_executable(${PROJECT_NAME} ${SOURCES})
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/utils 
+                                                   ${CMAKE_CURRENT_LIST_DIR}/src/net 
+                                                   ${CMAKE_CURRENT_LIST_DIR}/src/game)
+
+
+target_include_directories(${PROJECT_NAME} PRIVATE CONAN_PKG::boost)
+target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads
+                                              CONAN_PKG::boost
+                                              DogsModel)
+
+
+option(BUILD_TESTS "Build test programs" ON)
+if (BUILD_TESTS)
+    # Тесты игровой логики
+    file (GLOB_RECURSE GAME_TESTS
+                    "tests/game_loot_tests.cpp" 	
+                    "tests/loot_generator_tests.cpp" 	
+                    "src/game/*.cpp" "src/game/*.h"
+                    "src/net/*.cpp" "src/net/*.h"
+                    "src/utils/*.cpp" "src/utils/*.h")
+    add_executable(game_server_tests ${GAME_TESTS})
+    target_include_directories(game_server_tests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/utils 
+                                                    ${CMAKE_CURRENT_LIST_DIR}/src/net 
+                                                    ${CMAKE_CURRENT_LIST_DIR}/src/game)
+    target_include_directories(game_server_tests PRIVATE  CONAN_PKG::boost)
+    target_link_libraries(game_server_tests PRIVATE CONAN_PKG::catch2 CONAN_PKG::boost Threads::Threads DogsModel) 
+
+    # Тесты коллизий
+    file (GLOB_RECURSE COLLISION_TESTS
+                    "tests/collision-detector-tests.cpp")
+    add_executable(collision_detection_tests ${COLLISION_TESTS})
+    target_include_directories(game_server_tests PRIVATE  CONAN_PKG::boost)
+    target_link_libraries(collision_detection_tests PRIVATE CONAN_PKG::catch2 CONAN_PKG::boost Threads::Threads DogsModel) 
+endif(BUILD_TESTS)
