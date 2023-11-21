@@ -64,7 +64,7 @@ private:
     double       defaultSpeed_;
     uint32_t     defaultBagCapacity_{3};
     bool         randomSpawn_ = false;
-    double       randomGeneratorPeriod_;
+    uint32_t     randomGeneratorPeriod_;
     double       randomGeneratorProbability_;
 };
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <collisions/collision_detector.h>
 #include <model/dog.h>
 #include <model/loot_generator.h>
 #include <iostream>
