@@ -40,7 +40,7 @@ public:
     Dog(std::string_view name, uint32_t id)
         : name_(name), id_(id /*misc_id::Dog_id++*/), pos_{0, 0}, speed_({0.0, 0.0}), dir_{std::string(actions::Up)} {}
     RealPoint        Position() const { return pos_; }
-    const RealPoint& SetPosition(const RealPoint& pos) {  //check if position is correct
+    const RealPoint& SetPosition(const RealPoint& pos) {  //check if position is correct?
         pos_ = pos;
         return pos_;
     }

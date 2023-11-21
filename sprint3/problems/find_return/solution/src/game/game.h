@@ -10,6 +10,14 @@
 
 using namespace game;
 namespace model {
+namespace defaults {
+static const uint32_t BAG_CAPACITY{3};
+static const double   ITEM_WIDTH{0.0};
+static const double   DOG_WIDTH{0.6};
+static const double   OFFICE_WIDTH{0.5};  // База/оффис/пункт приёма
+static const double   ITEM_GENERATION_PERIOD{5};
+static const double   ITEM_GENERATION_PROBABILITY{0.5};
+}  // namespace defaults
 
 class Game {
 public:
@@ -34,8 +42,8 @@ public:
     void                SetRandomSpawnEnabled(bool isEnabled) { randomSpawn_ = isEnabled; }
     const spGameSession FindGame(const Dog& dog) {
         for (const auto& session : sessions_) {
-            for (const auto& pDog : session->GetPlayingDogs()) {
-                if (pDog->Id() == dog.Id())
+            for (const auto& [_, spDog] : session->GetPlayingDogs()) {
+                if (spDog->Id() == dog.Id())
                     return session;
             }
         }
@@ -48,7 +56,9 @@ public:
     void SetDefaultDogSpeed(double speed) { defaultSpeed_ = speed; }
     void SetDefaultBagCapacity(uint32_t capacity) { defaultBagCapacity_ = capacity; }
     void SetRandomSpawnPoint(bool isRandom = false) { randomSpawn_ = isRandom; }
-    void SetRandomGeneratorConfig(double period = 5.0, double probability = 0.5) {
+    void SetRandomGeneratorConfig(double period      = defaults::ITEM_GENERATION_PERIOD,
+                                  double probability = defaults::ITEM_GENERATION_PROBABILITY) {
+        // TODO: validate values?
         randomGeneratorPeriod_      = period;
         randomGeneratorProbability_ = probability;
     }
@@ -62,7 +72,10 @@ private:
     MapIdToIndex map_id_to_index_;
     Players      players_;
     double       defaultSpeed_;
-    uint32_t     defaultBagCapacity_{3};
+    uint32_t     defaultBagCapacity_{defaults::BAG_CAPACITY};
+    double       defaultItemWidth{defaults::ITEM_WIDTH};
+    double       defaultDogWidth{defaults::DOG_WIDTH};
+    double       defaultOfficeWidth{defaults::OFFICE_WIDTH};  // База/оффис/пункт приёма
     bool         randomSpawn_ = false;
     uint32_t     randomGeneratorPeriod_;
     double       randomGeneratorProbability_;

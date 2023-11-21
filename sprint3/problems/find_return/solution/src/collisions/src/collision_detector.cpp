@@ -22,7 +22,36 @@ CollectionResult TryCollectPoint(geom::Point2D a, geom::Point2D b, geom::Point2D
 
     return CollectionResult(sq_distance, proj_ratio);
 }
+std::vector<GatheringEvent> FindGatherEvents(const IItemsCollider& provider) {
+    std::vector<GatheringEvent> events;
 
+    for (const auto& gatherer : provider.GetGatherers()) {
+        if (gatherer.start_pos.x == gatherer.end_pos.x && gatherer.start_pos.y == gatherer.end_pos.y)
+            continue;
+
+        auto DetectCollisionEvents = [&](const auto& entities, CollisionEventType type) {
+            for (const auto& [_, entity] : entities) {
+                auto collResult = TryCollectPoint(gatherer.start_pos, gatherer.end_pos, entity.position);
+                if (!collResult.IsCollected(gatherer.width + entity.width))
+                    continue;
+
+                GatheringEvent event{.item_id     = entity.ingame_id,
+                                     .gatherer_id = gatherer.ingame_id,
+                                     .sq_distance = collResult.sq_distance,
+                                     .time        = collResult.proj_ratio,
+                                     .type        = type};
+                events.push_back(std::move(event));
+            }
+        };
+
+        DetectCollisionEvents(provider.GetItems(), CollisionEventType::ITEM_PICK);
+        DetectCollisionEvents(provider.GetDropOffices(), CollisionEventType::ITEM_DROP);
+    }
+
+    std::sort(events.begin(), events.end(), [](const auto& e_l, const auto& e_r) { return e_l.time < e_r.time; });
+
+    return events;
+}
 std::vector<GatheringEvent> FindGatherEvents(const IItemGathererProvider& provider) {
     std::vector<GatheringEvent> events;
 

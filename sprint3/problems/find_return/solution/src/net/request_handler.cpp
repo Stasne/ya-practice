@@ -151,7 +151,7 @@ StringResponse RequestHandler::GetGameState(const Token& token, std::string_view
 
     boost::json::object jObjectPlayers;
     const auto&         dogs = session->GetPlayingDogs();
-    for (const auto& dog : dogs) {
+    for (const auto& [_, dog] : dogs) {
         jObjectPlayers[to_string(dog->Id())] = utils::serialization::ToJsonObject(*dog);
     }
     boost::json::object jObjectLoot;

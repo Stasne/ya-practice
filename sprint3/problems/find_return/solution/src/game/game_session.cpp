@@ -65,17 +65,13 @@ GameSession::GameSession(SessionConfiguration&& config)
       lootGen_(std::chrono::seconds(config.randomGeneratorPeriod), config.randomGeneratorProbability) {}
 
 void GameSession::AddDog(const spDog doge) {
-    dogs_.push_back(doge);
+    dogs_.insert({doge->Id(), doge});
     auto mapSpawnPoint = GetNextMapPoint(map_, randomSpawn_);
-    dogs_.back()->SetPosition(mapSpawnPoint);
+    dogs_[doge->Id()]->SetPosition(mapSpawnPoint);
 }
 
 void GameSession::DogAction(uint32_t dogId, DogDirection action) {
-    auto foundDog = std::find_if(dogs_.begin(), dogs_.end(), [dogId](auto& dog) { return dog->Id() == dogId; });
-    if (foundDog == dogs_.end())
-        return;
-
-    (*foundDog)->SetDirection(action, speed_);
+    dogs_[dogId]->SetDirection(action, speed_);
 }
 
 void GameSession::UpdateState(uint32_t tick_ms) {
@@ -85,7 +81,7 @@ void GameSession::UpdateState(uint32_t tick_ms) {
     SpawnLoot(tick_ms);
 }
 void GameSession::UpdateDogsPosition(uint32_t tick_ms) {
-    for (auto& spdog : dogs_) {
+    for (auto& [_, spdog] : dogs_) {
         RealPoint estimatePosition = spdog->EstimatePosition(tick_ms);
         auto      boundPoint       = BoundDogMovementToMap(spdog->Position(), estimatePosition, map_);
         spdog->SetPosition(boundPoint);
