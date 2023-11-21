@@ -40,7 +40,7 @@ SCENARIO("Gather tests") {
         }
     }
     WHEN("1 item gathered ") {
-        std::vector<Item>     items{{{1, 0}, 0.4}};
+        std::vector<Item>     items{{0, {1, 0}, 0.4}};
         std::vector<Gatherer> dogs{
             {0, {3, 0}, {4, 0}, 0.4},
             {0, {0, 0}, {2, 0}, 0.4},
@@ -55,7 +55,7 @@ SCENARIO("Gather tests") {
         }
     }
     WHEN("Two dogs about to gather the item") {
-        std::vector<Item>     items{{{2, 0}, 0.4}};
+        std::vector<Item>     items{{0, {2, 0}, 0.4}};
         std::vector<Gatherer> dogs{
             {0, {3, 0}, {2, 0}, 0.4},
             {0, {0, 0}, {2, 0}, 0.4},
@@ -71,13 +71,13 @@ SCENARIO("Gather tests") {
     }
     WHEN("Dog has many items on the way") {
         std::vector<Item> items{
-            {{2, 0}, 0.4},    // 0 *
-            {{3, 0.6}, 0.1},  // 1 miss
-            {{3, 0}, 0.4},    // 2 *
-            {{4, 0}, 0.1},    // 3 *
-            {{5, 1}, 0.2},    // 4 miss
-            {{5, 0}, 0.4},    // 5 *
-            {{5, 0}, 0.6},    // 6 *
+            {0, {2, 0}, 0.4},    // 0 *
+            {0, {3, 0.6}, 0.1},  // 1 miss
+            {0, {3, 0}, 0.4},    // 2 *
+            {0, {4, 0}, 0.1},    // 3 *
+            {0, {5, 1}, 0.2},    // 4 miss
+            {0, {5, 0}, 0.4},    // 5 *
+            {0, {5, 0}, 0.6},    // 6 *
         };
         std::vector<Gatherer> dogs{
             {0, {1, 0}, {6, 0}, 0.2},

@@ -21,6 +21,7 @@ struct CollectionResult {
 CollectionResult TryCollectPoint(geom::Point2D a, geom::Point2D b, geom::Point2D c);
 
 struct Item {
+    uint32_t      ingame_id;
     geom::Point2D position;
     double        width;
 };
