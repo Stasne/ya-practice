@@ -145,14 +145,25 @@ StringResponse RequestHandler::GetPlayers(const Token& token, std::string_view b
 StringResponse RequestHandler::GetGameState(const Token& token, std::string_view body) const {
     auto wpPlayer = game_.PlayersHandler().PlayerByToken(token);
 
-    auto session = game_.FindGame(*wpPlayer.lock()->GetDog());
+    auto session = game_.FindGame(wpPlayer.lock()->GetDog()->Id());
     if (!session)
         return http_handler::Response::MakeErrorUnknownToken("No game session was found for u");
 
     boost::json::object jObjectPlayers;
-    const auto&         dogs = session->GetPlayingDogs();
-    for (const auto& [_, dog] : dogs) {
-        jObjectPlayers[to_string(dog->Id())] = utils::serialization::ToJsonObject(*dog);
+    const auto&         players = session->GetPlayers();
+    for (const auto& [_, p] : players) {
+        const auto&        dog       = p.dog;
+        auto               dogObject = utils::serialization::ToJsonObject(*dog);
+        boost::json::array objectsArray;
+        for (const auto& bagSlot : p.bag) {
+            boost::json::object bagSlotObject;
+            bagSlotObject["id"]   = bagSlot.item_id;
+            bagSlotObject["type"] = bagSlot.type;
+            objectsArray.push_back(bagSlotObject);
+        }
+        dogObject["bag"]                     = objectsArray;
+        dogObject["score"]                   = p.score;
+        jObjectPlayers[to_string(dog->Id())] = dogObject;
     }
     boost::json::object jObjectLoot;
     const auto&         mapLoot = session->GetLoot();
@@ -191,7 +202,7 @@ StringResponse RequestHandler::PostPlayerAction(const Token& token, std::string_
     // get player session
     auto wpPlayer = game_.PlayersHandler().PlayerByToken(token);
 
-    auto session = game_.FindGame(*wpPlayer.lock()->GetDog());
+    auto session = game_.FindGame(wpPlayer.lock()->GetDog()->Id());
     if (!session)
         return http_handler::Response::MakeErrorUnknownToken("No game session was found for u");
 

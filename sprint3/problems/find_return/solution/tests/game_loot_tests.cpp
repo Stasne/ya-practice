@@ -8,13 +8,13 @@ using namespace std::literals;
 SCENARIO("Game loot spawning") {
     model::Game game = json_loader::LoadGame("../data/config.json");
     GIVEN("Loaded game") {
-        auto maps = game.GetMaps();
+        auto maps      = game.GetMaps();
         auto spSession = game.StartGame(maps[0], "TestSession");
-        auto spDog1 = std::make_shared<Dog>("spike", 1);
-        auto spDog2 = std::make_shared<Dog>("buddy", 2);
+        auto spDog1    = std::make_shared<Dog>("spike", 1);
+        auto spDog2    = std::make_shared<Dog>("buddy", 2);
         WHEN("Game loot with/out dogs") {
             THEN("no dogs no loot") {
-                CHECK(spSession->GetPlayingDogs().size() == 0);
+                CHECK(spSession->GetPlayers().size() == 0);
                 REQUIRE(spSession->GetLoot().size() == 0);
                 spSession->UpdateState(5000);
                 REQUIRE(spSession->GetLoot().size() == 0);
@@ -22,11 +22,11 @@ SCENARIO("Game loot spawning") {
                 REQUIRE(spSession->GetLoot().size() == 0);
             }
             THEN("1 dog, no tick = no loot") {
-                CHECK(spSession->GetPlayingDogs().size() == 0);
+                CHECK(spSession->GetPlayers().size() == 0);
                 REQUIRE(spSession->GetLoot().size() == 0);
 
                 spSession->AddDog(spDog1);
-                CHECK(spSession->GetPlayingDogs().size() == 1);
+                CHECK(spSession->GetPlayers().size() == 1);
                 REQUIRE(spSession->GetLoot().size() == 0);
             }
             THEN("1 dog half a tick = no loot") {

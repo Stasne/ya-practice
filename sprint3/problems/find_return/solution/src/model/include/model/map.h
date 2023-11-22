@@ -52,6 +52,7 @@ struct Loot {
     std::optional<uint32_t>    rotation;
     std::optional<std::string> color;  //string?
     double                     scale;
+    uint32_t                   value;
 };
 struct MapLoot {
     RealPoint pos;

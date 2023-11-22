@@ -31,15 +31,16 @@ spGameSession Game::StartGame(const Map& map, std::string_view name) {
     if (map.GetBagCapacity())
         bagCapacity = *map.GetBagCapacity();
 
-    game::SessionConfiguration config{.name                       = std::string(name),
-                                      .map                        = map,
-                                      .speed                      = sessionSpeed,
-                                      .bagCapacity                = bagCapacity,
-                                      .randomSpawnPoint           = randomSpawn_,
-                                      .randomGeneratorPeriod      = randomGeneratorPeriod_,
-                                      .randomGeneratorProbability = randomGeneratorProbability_};
-
-    sessions_.emplace_back(std::make_shared<GameSession>(std::move(config)));
+    game::SessionConfiguration             config{.name                       = std::string(name),
+                                                  .map                        = map,
+                                                  .speed                      = sessionSpeed,
+                                                  .bagCapacity                = bagCapacity,
+                                                  .randomSpawnPoint           = randomSpawn_,
+                                                  .randomGeneratorPeriod      = randomGeneratorPeriod_,
+                                                  .randomGeneratorProbability = randomGeneratorProbability_};
+    collision_detector::CollisionPrameters collisionParams{
+        .dogWidth = defaults::DOG_WIDTH, .officeWidth = defaults::OFFICE_WIDTH, .itemWidth = defaults::ITEM_WIDTH};
+    sessions_.emplace_back(std::make_shared<GameSession>(std::move(config), std::move(collisionParams)));
     return sessions_.back();  //Т.к. на работу с апи стоит мьютекс, то безопасно
 }
 

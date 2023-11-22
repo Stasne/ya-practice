@@ -32,6 +32,7 @@ constexpr static auto Type{"type"};
 constexpr static auto Rotation{"rotation"};
 constexpr static auto Color{"color"};
 constexpr static auto Scale{"scale"};
+constexpr static auto Value{"value"};
 }  // namespace Fields
 
 Map::Roads Map::GetRoadsForPoint(const RealPoint& p) const noexcept {
@@ -207,6 +208,7 @@ void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, const Loot&
     if (loot.color)
         obj[Fields::Color] = *loot.color;
     obj[Fields::Scale] = loot.scale;
+    obj[Fields::Value] = loot.value;
     jv                 = std::move(obj);
 }
 
@@ -224,8 +226,10 @@ Loot tag_invoke(boost::json::value_to_tag<Loot>, const boost::json::value& jv) {
     std::optional<std::string> color;
     if (obj.contains(Fields::Color))
         color = std::string(obj.at(Fields::Color).as_string());
-    auto scale = obj.at(Fields::Scale).as_double();
-    return {name, path, type, rotation, color, scale};
+    auto     scale = obj.at(Fields::Scale).as_double();
+    uint32_t value = static_cast<uint32_t>(obj.at(Fields::Value).as_int64());
+    return {
+        .name = name, .file = path, .type = type, .rotation = rotation, .color = color, .scale = scale, .value = value};
 }
 
 }  // namespace model

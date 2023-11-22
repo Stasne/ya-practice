@@ -2,9 +2,8 @@ FROM gcc:11.3 as build
 
 RUN apt update && \
     apt install -y \
-      python3-pip \
-      cmake \
-    && \
+    python3-pip \
+    cmake &&\
     pip3 install conan\<2.0
 
 # копируем conanfile.txt в контейнер и запускаем conan install
@@ -19,7 +18,7 @@ COPY ./data /app/data
 COPY CMakeLists.txt /app/
 
 RUN cd /app/build && \
-    cmake -DCMAKE_BUILD_TYPE=Release .. && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF .. && \
     cmake --build . 
 
 

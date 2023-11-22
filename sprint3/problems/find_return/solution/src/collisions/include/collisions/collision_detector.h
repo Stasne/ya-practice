@@ -1,11 +1,16 @@
 #pragma once
-
 #include <algorithm>
+#include <iostream>
 #include <unordered_map>
 #include <vector>
 #include "geom.h"
 
 namespace collision_detector {
+struct CollisionPrameters {
+    double dogWidth;
+    double officeWidth;
+    double itemWidth;
+};
 enum class CollisionEventType {
     ITEM_PICK,
     ITEM_DROP,
@@ -46,9 +51,21 @@ public:
     virtual size_t   GatherersCount() const        = 0;
     virtual Gatherer GetGatherer(size_t num) const = 0;
 };
+class ItemGathererProvider : public IItemGathererProvider {
+public:
+    ItemGathererProvider(std::vector<Item> items, std::vector<Gatherer> daugs) : items_(items), dogs_(daugs) {}
+    size_t   ItemsCount() const override { return items_.size(); }
+    Item     GetItem(size_t idx) const override { return items_.at(idx); }
+    size_t   GatherersCount() const override { return dogs_.size(); }
+    Gatherer GetGatherer(size_t idx) const override { return dogs_.at(idx); }
+
+private:
+    std::vector<Item>     items_;
+    std::vector<Gatherer> dogs_;
+};
 
 using Items       = std::unordered_map<uint32_t, Item>;
-using Gatherers   = std::vector<Gatherer>;
+using Gatherers   = std::unordered_map<uint32_t, Gatherer>;
 using DropOffice  = Item;
 using DropOffices = std::unordered_map<uint32_t, DropOffice>;
 
@@ -57,28 +74,26 @@ protected:
     ~IItemsCollider() = default;
 
 public:
-    virtual void              AddGatherer(Gatherer gatherer) = 0;
-    virtual void              AddOffice(DropOffice dropoff)  = 0;
-    virtual void              AddItem(Item item)             = 0;
-    virtual void              RemoveItem(size_t ingame_id)   = 0;
-    virtual const Items       GetItems() const               = 0;
-    virtual const Gatherers   GetGatherers() const           = 0;
-    virtual const DropOffices GetDropOffices() const         = 0;
-    virtual void              UpdateNextTickPosition()       = 0;
+    virtual void              AddGatherer(Gatherer gatherer)                                          = 0;
+    virtual void              AddDropOffice(DropOffice dropoff)                                       = 0;
+    virtual void              AddItem(Item item)                                                      = 0;
+    virtual void              RemoveItem(uint32_t ingame_id)                                          = 0;
+    virtual const Items       GetItems() const                                                        = 0;
+    virtual const Gatherers   GetGatherers() const                                                    = 0;
+    virtual const DropOffices GetDropOffices() const                                                  = 0;
+    virtual void              UpdateNextTickPosition(uint32_t gatherer_id, geom::Point2D updated_pos) = 0;
 };
 class ItemsCollider : public IItemsCollider {
-protected:
-    ~ItemsCollider() = default;
-
 public:
-    void              AddGatherer(Gatherer gatherer) { gatherers_.push_back(std::move(gatherer)); };
-    void              AddDropOffice(DropOffice dropoff) { drops_[dropoff.ingame_id] = std::move(dropoff); }
-    void              AddItem(Item item) { items_[item.ingame_id] = std::move(item); }
-    void              RemoveItem(uint32_t ingame_id) { items_.erase(ingame_id); }
-    const Items       GetItems() const { return items_; }
-    const Gatherers   GetGatherers() const { return gatherers_; }
-    const DropOffices GetDropOffices() const { return drops_; }
-    void              UpdateNextTickPosition(uint32_t gatherer_id, geom::Point2D updated_pos) {
+    ~ItemsCollider() = default;
+    void              AddGatherer(Gatherer gatherer) override { gatherers_[gatherer.ingame_id] = gatherer; };
+    void              AddDropOffice(DropOffice dropoff) override { drops_[dropoff.ingame_id] = dropoff; }
+    void              AddItem(Item item) override { items_[item.ingame_id] = item; }
+    void              RemoveItem(uint32_t ingame_id) override { items_.erase(ingame_id); }
+    const Items       GetItems() const override { return items_; }
+    const Gatherers   GetGatherers() const override { return gatherers_; }
+    const DropOffices GetDropOffices() const override { return drops_; }
+    void              UpdateNextTickPosition(uint32_t gatherer_id, geom::Point2D updated_pos) override {
         auto& gatherer     = gatherers_[gatherer_id];
         gatherer.start_pos = gatherer.end_pos;
         gatherer.end_pos   = updated_pos;
@@ -90,23 +105,9 @@ private:
     DropOffices drops_;
 };
 
-class ItemGathererProvider : public IItemGathererProvider {
-public:
-    ItemGathererProvider(std::vector<Item> items, std::vector<Gatherer> daugs)
-        : items_(std::move(items)), dogs_(std::move(daugs)) {}
-    size_t   ItemsCount() const override { return items_.size(); }
-    Item     GetItem(size_t idx) const override { return items_.at(idx); }
-    size_t   GatherersCount() const override { return dogs_.size(); }
-    Gatherer GetGatherer(size_t idx) const override { return dogs_.at(idx); }
-
-private:
-    std::vector<Item>     items_;
-    std::vector<Gatherer> dogs_;
-};
-
 struct GatheringEvent {
-    size_t             item_id;
-    size_t             gatherer_id;
+    uint32_t           item_id;
+    uint32_t           gatherer_id;
     double             sq_distance;
     double             time;
     CollisionEventType type = CollisionEventType::ITEM_PICK;

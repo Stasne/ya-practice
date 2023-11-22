@@ -55,33 +55,47 @@ RealPoint GetNextMapPoint(const Map& map, bool isRandom = true) {
     return {static_cast<double>(spawnX), static_cast<double>(spawnY)};
 }
 
-GameSession::GameSession(SessionConfiguration&& config)
+GameSession::GameSession(SessionConfiguration&& config, collision_detector::CollisionPrameters&& collisionParams)
     : id_(SessionId++),
       name_(config.name.empty() ? config.map.GetName() + '_' + std::to_string(id_) : config.name),
       map_(config.map),
       speed_(config.speed),
       bagCapacity_(config.bagCapacity),
       randomSpawn_(config.randomSpawnPoint),
-      lootGen_(std::chrono::seconds(config.randomGeneratorPeriod), config.randomGeneratorProbability) {}
+      lootGen_(std::chrono::seconds(config.randomGeneratorPeriod), config.randomGeneratorProbability),
+      colliderParams_(std::move(collisionParams)) {
+    uint32_t dummyOfficeId{0};
+    for (const auto& mapOffice : map_.GetOffices()) {
+        collider_.AddDropOffice({.ingame_id = dummyOfficeId++,
+                                 .position  = geom::Point2D(mapOffice.GetPosition().x, mapOffice.GetPosition().y),
+                                 .width     = colliderParams_.officeWidth});
+    }
+}
 
 void GameSession::AddDog(const spDog doge) {
-    dogs_.insert({doge->Id(), doge});
-    auto mapSpawnPoint = GetNextMapPoint(map_, randomSpawn_);
-    dogs_[doge->Id()]->SetPosition(mapSpawnPoint);
+    players_[doge->Id()] = {.dog = doge, .bag = {}, .score = 0};
+    auto mapSpawnPoint   = GetNextMapPoint(map_, randomSpawn_);
+    doge->SetPosition(mapSpawnPoint);
+    geom::Point2D start_pos{mapSpawnPoint.x, mapSpawnPoint.y};
+    collider_.AddGatherer(
+        {.ingame_id = doge->Id(), .start_pos = start_pos, .end_pos = start_pos, .width = colliderParams_.dogWidth});
 }
 
 void GameSession::DogAction(uint32_t dogId, DogDirection action) {
-    dogs_[dogId]->SetDirection(action, speed_);
+    if (!players_.count(dogId) || !players_[dogId].dog)
+        return;
+    players_[dogId].dog->SetDirection(action, speed_);
 }
 
 void GameSession::UpdateState(uint32_t tick_ms) {
     UpdateDogsPosition(tick_ms);
-    //pick loot (if possible)
-    //remove picked loot
+    UpdateCollidableState();
+    ProcessCollisions();
     SpawnLoot(tick_ms);
 }
 void GameSession::UpdateDogsPosition(uint32_t tick_ms) {
-    for (auto& [_, spdog] : dogs_) {
+    for (auto& [_, player] : players_) {
+        auto&     spdog            = player.dog;
         RealPoint estimatePosition = spdog->EstimatePosition(tick_ms);
         auto      boundPoint       = BoundDogMovementToMap(spdog->Position(), estimatePosition, map_);
         spdog->SetPosition(boundPoint);
@@ -89,8 +103,40 @@ void GameSession::UpdateDogsPosition(uint32_t tick_ms) {
             spdog->SetSpeed(0);
     }
 }
+void GameSession::UpdateCollidableState() {
+    // обновляет новую позицию собаки
+    for (auto& [_, player] : players_) {
+        auto& spdog = player.dog;
+        collider_.UpdateNextTickPosition(spdog->Id(), {spdog->Position().x, spdog->Position().y});
+    }
+}
+void GameSession::ProcessCollisions() {
+    auto events = FindGatherEvents(collider_);
+    for (const auto& e : events) {
+        auto type = e.type;
+        switch (type) {
+            case collision_detector::CollisionEventType::ITEM_PICK: {
+                if (!lootPositions_.count(e.item_id))  //item already picked
+                    continue;
+
+                auto& player = players_.at(e.gatherer_id);
+                if (player.bag.size() >= bagCapacity_)  // bag is full
+                    continue;
+                // add item to dogs' bag
+                player.bag.push_back({e.item_id, lootPositions_[e.item_id].type});
+                // remove item from map
+                lootPositions_.erase(e.item_id);
+                break;
+            }
+            case collision_detector::CollisionEventType::ITEM_DROP: {
+                // TODO:
+                break;
+            }
+        }
+    }
+}
 void GameSession::SpawnLoot(uint32_t tick_ms) {
-    auto lootToSpawn = lootGen_.Generate(std::chrono::milliseconds(tick_ms), lootPositions_.size(), dogs_.size());
+    auto lootToSpawn = lootGen_.Generate(std::chrono::milliseconds(tick_ms), lootPositions_.size(), players_.size());
     if (!lootToSpawn)
         return;
     static uint32_t lootNum;

@@ -25,14 +25,14 @@ CollectionResult TryCollectPoint(geom::Point2D a, geom::Point2D b, geom::Point2D
 std::vector<GatheringEvent> FindGatherEvents(const IItemsCollider& provider) {
     std::vector<GatheringEvent> events;
 
-    for (const auto& gatherer : provider.GetGatherers()) {
+    for (const auto& [_, gatherer] : provider.GetGatherers()) {
         if (gatherer.start_pos.x == gatherer.end_pos.x && gatherer.start_pos.y == gatherer.end_pos.y)
             continue;
 
         auto DetectCollisionEvents = [&](const auto& entities, CollisionEventType type) {
             for (const auto& [_, entity] : entities) {
                 auto collResult = TryCollectPoint(gatherer.start_pos, gatherer.end_pos, entity.position);
-                if (!collResult.IsCollected(gatherer.width + entity.width))
+                if (!collResult.IsCollected(gatherer.width / 2 + entity.width / 2))
                     continue;
 
                 GatheringEvent event{.item_id     = entity.ingame_id,

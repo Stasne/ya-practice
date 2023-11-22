@@ -40,12 +40,10 @@ public:
     //Gaming sessions
     spGameSession       StartGame(const Map& map, std::string_view name = "");
     void                SetRandomSpawnEnabled(bool isEnabled) { randomSpawn_ = isEnabled; }
-    const spGameSession FindGame(const Dog& dog) {
+    const spGameSession FindGame(uint32_t dogId) {
         for (const auto& session : sessions_) {
-            for (const auto& [_, spDog] : session->GetPlayingDogs()) {
-                if (spDog->Id() == dog.Id())
-                    return session;
-            }
+            if (session->GetPlayers().count(dogId))
+                return session;
         }
         return {};
     }
@@ -75,7 +73,7 @@ private:
     uint32_t     defaultBagCapacity_{defaults::BAG_CAPACITY};
     double       defaultItemWidth{defaults::ITEM_WIDTH};
     double       defaultDogWidth{defaults::DOG_WIDTH};
-    double       defaultOfficeWidth{defaults::OFFICE_WIDTH};  // База/оффис/пункт приёма
+    double       defaultOfficeWidth{defaults::OFFICE_WIDTH};
     bool         randomSpawn_ = false;
     uint32_t     randomGeneratorPeriod_;
     double       randomGeneratorProbability_;
