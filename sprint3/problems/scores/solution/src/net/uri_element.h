@@ -6,9 +6,11 @@ namespace beast = boost::beast;
 namespace http  = beast::http;
 // Class UriElement (Vladimir Mikhaylov(c)))
 namespace http_handler {
+
 using Request               = http::request<http::string_body>;
 using FunctionWithAuthorize = std::function<StringResponse(const security::token::Token& token, std::string_view body)>;
 using FunctionWithoutAuthorize = std::function<StringResponse(std::string_view body)>;
+
 class UriElement {
     struct AllowedMethods {
         std::vector<http::verb> data_;
@@ -101,4 +103,5 @@ private:
     FunctionWithAuthorize    process_function_;
     FunctionWithoutAuthorize process_function_without_authorize_;
 };
+
 }  // namespace http_handler

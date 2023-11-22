@@ -22,7 +22,8 @@ CollectionResult TryCollectPoint(geom::Point2D a, geom::Point2D b, geom::Point2D
 
     return CollectionResult(sq_distance, proj_ratio);
 }
-std::vector<GatheringEvent> FindGatherEvents(const IItemsCollider& provider) {
+
+std::vector<GatheringEvent> FindGatherEvents(const ItemsCollider& provider) {
     std::vector<GatheringEvent> events;
 
     for (const auto& [_, gatherer] : provider.GetGatherers()) {
@@ -52,6 +53,7 @@ std::vector<GatheringEvent> FindGatherEvents(const IItemsCollider& provider) {
 
     return events;
 }
+// оставлено от задания с тестированием
 std::vector<GatheringEvent> FindGatherEvents(const IItemGathererProvider& provider) {
     std::vector<GatheringEvent> events;
 

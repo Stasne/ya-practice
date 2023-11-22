@@ -24,22 +24,20 @@ public:
     // Maps workflow
     using Maps         = std::vector<Map>;
     using GameSessions = std::vector<spGameSession>;
-    void AddMap(Map map);
-
+    void        AddMap(Map map);
     const Maps& GetMaps() const noexcept { return maps_; }
-
-    const Map* FindMap(const Map::Id& id) const noexcept {
+    const Map*  FindMap(const Map::Id& id) const noexcept {
         if (auto it = map_id_to_index_.find(id); it != map_id_to_index_.end()) {
             return &maps_.at(it->second);
         }
         return nullptr;
     }
-    //Players
+
+    // Players controller
     Players& PlayersHandler() { return players_; }
 
-    //Gaming sessions
+    // Gaming sessions
     spGameSession       StartGame(const Map& map, std::string_view name = "");
-    void                SetRandomSpawnEnabled(bool isEnabled) { randomSpawn_ = isEnabled; }
     const spGameSession FindGame(uint32_t dogId) {
         for (const auto& session : sessions_) {
             if (session->GetPlayers().count(dogId))
@@ -47,10 +45,13 @@ public:
         }
         return {};
     }
+
     void TickTime(uint32_t tick_ms) {
         for (auto& session : sessions_)
             session->UpdateState(tick_ms);
     }
+
+    void SetRandomSpawnEnabled(bool isEnabled) { randomSpawn_ = isEnabled; }
     void SetDefaultDogSpeed(double speed) { defaultSpeed_ = speed; }
     void SetDefaultBagCapacity(uint32_t capacity) { defaultBagCapacity_ = capacity; }
     void SetRandomSpawnPoint(bool isRandom = false) { randomSpawn_ = isRandom; }

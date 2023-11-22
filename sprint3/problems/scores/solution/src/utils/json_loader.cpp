@@ -7,7 +7,7 @@ using namespace model;
 namespace json_loader {
 
 std::string FileToString(const std::filesystem::path& json_path) {
-    // .json extension check?
+    // TODO: .json extension check?
     std::ifstream file(json_path);
     if (!file.is_open()) {
         std::cerr << "Failed to open file: " << json_path << std::endl;
@@ -20,7 +20,7 @@ std::string FileToString(const std::filesystem::path& json_path) {
     return buffer.str();
 }
 
-boost::json::value JsonStringToObjec(
+boost::json::value JsonStringToObject(
     const std::string& source_string)  // mb smth instead of const string&? string_view?
 {
     boost::json::error_code ec;
@@ -37,6 +37,7 @@ void LoadMaps(const boost::json::value& jv, model::Game& game) {
         game.AddMap(value_to<Map>(map));
     }
 }
+
 std::tuple<double, double> extractLootGeneratorParameters(boost::json::object& mapObj) {
     if (!mapObj.contains("lootGeneratorConfig"))
         throw std::runtime_error("No 'lootGeneratorConfig' found in game paramters");
@@ -53,7 +54,7 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
     model::Game game;
 
     auto file_content = FileToString(json_path);
-    auto jv           = JsonStringToObjec(file_content);
+    auto jv           = JsonStringToObject(file_content);
     auto jobj         = jv.get_object();
     if (!jobj.contains("defaultDogSpeed"))
         throw std::runtime_error("No 'defaultDogSpeed' found in game paramters");

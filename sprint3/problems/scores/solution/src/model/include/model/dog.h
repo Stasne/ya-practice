@@ -22,7 +22,9 @@ static constexpr std::string_view Left{"L"sv};
 namespace detail {
 struct DirectionTag {};
 }  // namespace detail
+
 using DogDirection = util::Tagged<std::string, detail::DirectionTag>;
+
 namespace misc {
 static const std::unordered_set<std::string_view> ValidActions{actions::Up, actions::Down, actions::Left,
                                                                actions::Right};
@@ -38,9 +40,10 @@ struct SpeedVals {
 class Dog : public std::enable_shared_from_this<Dog> {
 public:
     Dog(std::string_view name, uint32_t id)
-        : name_(name), id_(id /*misc_id::Dog_id++*/), pos_{0, 0}, speed_({0.0, 0.0}), dir_{std::string(actions::Up)} {}
+        : name_(name), id_(id), pos_{0, 0}, speed_({0.0, 0.0}), dir_{std::string(actions::Up)} {}
     RealPoint        Position() const { return pos_; }
-    const RealPoint& SetPosition(const RealPoint& pos) {  //check if position is correct?
+    const RealPoint& SetPosition(const RealPoint& pos) {
+        // TODO: check if position is correct?
         pos_ = pos;
         return pos_;
     }
@@ -90,6 +93,7 @@ private:
     RealPoint          pos_;
     game::DogDirection dir_;
 };
+
 using spDog = std::shared_ptr<Dog>;
 
 }  // namespace game
