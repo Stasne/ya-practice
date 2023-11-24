@@ -18,6 +18,7 @@ using Real      = double;
 
 struct Point {
     Coord x, y;
+    auto  operator<=>(const Point&) const = default;
 };
 struct RealPoint {
     Real   x, y;
@@ -35,15 +36,18 @@ struct RealPoint {
 };
 struct Size {
     Dimension width, height;
+    auto      operator<=>(const Size&) const = default;
 };
 
 struct Rectangle {
     Point position;
     Size  size;
+    auto  operator<=>(const Rectangle&) const = default;
 };
 
 struct Offset {
     Dimension dx, dy;
+    auto      operator<=>(const Offset&) const = default;
 };
 struct Loot {
     std::string                name;
@@ -53,10 +57,13 @@ struct Loot {
     std::optional<std::string> color;  //string?
     double                     scale;
     uint32_t                   value;
+
+    auto operator<=>(const Loot&) const = default;
 };
 struct MapLoot {
     RealPoint pos;
     uint32_t  type;
+    auto      operator<=>(const MapLoot&) const = default;
 };
 static const double RoadWidth{0.4};
 class Road {
@@ -104,6 +111,7 @@ public:
         boundPoint.y    = std::clamp(boundPoint.y, lbotY_, rtopY_);
         return boundPoint;
     }
+    auto operator<=>(const Road&) const = default;
 
 private:
     double       width_;
@@ -120,6 +128,7 @@ public:
     explicit Building(Rectangle bounds) noexcept : bounds_{bounds} {}
 
     const Rectangle& GetBounds() const noexcept { return bounds_; }
+    auto             operator<=>(const Building&) const = default;
 
 private:
     Rectangle bounds_;
@@ -135,6 +144,7 @@ public:
 
     Point  GetPosition() const noexcept { return position_; }
     Offset GetOffset() const noexcept { return offset_; }
+    auto   operator<=>(const Office&) const = default;
 
 private:
     Id     id_;
@@ -167,6 +177,8 @@ public:
     void                    AddOffice(Office office);
     void                    AddLoot(Loot loot) { loot_.emplace_back(loot); }
     Roads                   GetRoadsForPoint(const RealPoint& p) const noexcept;
+
+    auto operator<=>(const Map&) const = default;
 
 private:
     Id                      id_;

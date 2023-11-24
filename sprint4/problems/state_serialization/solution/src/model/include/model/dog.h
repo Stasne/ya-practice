@@ -35,29 +35,23 @@ using PlayerPosDimension = double;
 
 struct SpeedVals {
     SpeedUnit vert{0}, hor{0};
+    auto      operator<=>(const SpeedVals&) const = default;
 };
 
 class Dog : public std::enable_shared_from_this<Dog> {
 public:
     Dog(std::string_view name, uint32_t id)
         : name_(name), id_(id), pos_{0, 0}, speed_({0.0, 0.0}), dir_{std::string(actions::Up)} {}
+    uint32_t         Id() const { return id_; }
+    std::string_view GetName() const { return name_; }
     RealPoint        Position() const { return pos_; }
     const RealPoint& SetPosition(const RealPoint& pos) {
         // TODO: check if position is correct?
         pos_ = pos;
         return pos_;
     }
-    RealPoint EstimatePosition(uint32_t ticks_ms) const {
-        RealPoint estimatingPoint;
-        double    horPath  = speed_.hor * (static_cast<double>(ticks_ms) / 1000);
-        double    vertPath = speed_.vert * (static_cast<double>(ticks_ms) / 1000);
-        estimatingPoint.x  = pos_.x + horPath;
-        estimatingPoint.y  = pos_.y + vertPath;
-        return estimatingPoint;
-    }
 
     SpeedVals        Speed() const { return speed_; }
-    uint32_t         Id() const { return id_; }
     std::string_view Direction() const { return *dir_; }
     void             SetSpeed(double speed = 0) {
         if (*dir_ == game::actions::Stop) {
@@ -84,6 +78,18 @@ public:
     void SetDirection(game::DogDirection action, double speed = 0) {
         dir_ = action;
         SetSpeed(speed);
+    }
+    RealPoint EstimatePosition(uint32_t ticks_ms) const {
+        RealPoint estimatingPoint;
+        double    horPath  = speed_.hor * (static_cast<double>(ticks_ms) / 1000);
+        double    vertPath = speed_.vert * (static_cast<double>(ticks_ms) / 1000);
+        estimatingPoint.x  = pos_.x + horPath;
+        estimatingPoint.y  = pos_.y + vertPath;
+        return estimatingPoint;
+    }
+
+    bool operator==(const Dog& r) const {
+        return id_ == r.id_ && name_ == r.name_ && speed_ == r.speed_ && pos_ == r.pos_ && dir_ == r.dir_;
     }
 
 private:

@@ -25,6 +25,13 @@ std::shared_ptr<Token> CreateToken() {
     return token;
 }
 
+std::shared_ptr<Token> RestoreToken(const std::string& tokenString) {
+    auto token               = std::make_shared<Token>(tokenString);
+    ValidTokens[tokenString] = token;
+
+    return token;
+}
+
 bool IsTokenCorrect(const Token& token) {
     std::regex hexPattern("^[0-9a-fA-F]{32}$");
 

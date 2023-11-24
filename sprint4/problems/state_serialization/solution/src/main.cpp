@@ -1,3 +1,4 @@
+#include <game_saver.h>
 #include <json_loader.h>
 #include <logger.h>
 #include <logger_request_handler.h>
@@ -41,10 +42,13 @@ enum Parameters {
 
 struct Args {
     boost::optional<uint32_t> tick_period;
-    std::string config_file;
-    std::string www_root_path;
-    bool random_spawn{false};
+    boost::optional<uint32_t> autosave_period;
+    std::string               config_file;
+    std::string               www_root_path;
+    std::string               state_file;
+    bool                      random_spawn{false};
 };
+
 [[nodiscard]] std::optional<Args> ParseCommandLine(int argc, const char* const argv[]) {
     namespace po = boost::program_options;
 
@@ -53,8 +57,11 @@ struct Args {
     Args args;
     desc.add_options()("help,h", "Show help")("tick-period,t", po::value(&args.tick_period)->value_name("tick-period"s),
                                               "Game tick period in milliseconds")(
+        "save-state-period,a", po::value(&args.autosave_period)->value_name("save-state-period"s),
+        "Autosave period, milliseconds (gametime)")(
         "config-file,c", po::value(&args.config_file)->value_name("config-file"s), "Config file path")(
         "www-root,w", po::value(&args.www_root_path)->value_name("www-root"s), "www static files folder")(
+        "state-file,s", po::value(&args.state_file)->value_name("state-file"s), "Game state file (to load the game)")(
         "randomize-spawn-points", po::bool_switch(&args.random_spawn), "Spawn dogs randomly on a map");
 
     po::variables_map vm;
@@ -90,7 +97,7 @@ int main(int argc, const char* argv[]) {
         game.SetRandomSpawnEnabled(args->random_spawn);
         files::FileServer fileserver(args->www_root_path);
         // 2. Инициализируем io_context
-        const unsigned num_threads = std::thread::hardware_concurrency();
+        const unsigned  num_threads = std::thread::hardware_concurrency();
         net::io_context ioc(num_threads);
 
         // 3. Добавляем асинхронный обработчик сигналов SIGINT и SIGTERM
@@ -102,7 +109,7 @@ int main(int argc, const char* argv[]) {
         });
         // 4. Создаём обработчик HTTP-запросов и связываем его с моделью игры
         // strand для выполнения запросов к API
-        auto api_strand = net::make_strand(ioc);
+        auto                    api_strand = net::make_strand(ioc);
         std::shared_ptr<Ticker> ticker;
         if (args->tick_period) {
             ticker = std::make_shared<Ticker>(
@@ -115,15 +122,22 @@ int main(int argc, const char* argv[]) {
         LoggingRequestHandler<http_handler::RequestHandler> handler_logged(handler);
 
         // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
-        const auto address = net::ip::make_address(ServerParam::ADDR);
-        const uint32_t uport = ServerParam::PORT;
-        constexpr net::ip::port_type port = uport;
+        const auto                   address = net::ip::make_address(ServerParam::ADDR);
+        const uint32_t               uport   = ServerParam::PORT;
+        constexpr net::ip::port_type port    = uport;
         http_server::ServeHttp(ioc, {address, port}, [&handler_logged](auto&& socket, auto&& req, auto&& send) {
             handler_logged(std::forward<decltype(socket)>(socket), std::forward<decltype(req)>(req),
                            std::forward<decltype(send)>(send));
         });
         boost::json::value custom_data{{"port", uport}, {"address", address.to_string()}};
         Logger::Log(custom_data, "server started"sv);
+
+        // 5.1 load game if possible * save at exit
+        std::optional<uint32_t> autosave_period;
+        if (args->autosave_period)
+            autosave_period = *args->autosave_period;
+        GameSaver saver(game, args->state_file, autosave_period);
+        game.AddListener(&saver);
 
         // 6. Запускаем обработку асинхронных операций
         RunWorkers(std::max(1u, num_threads), [&ioc] { ioc.run(); });

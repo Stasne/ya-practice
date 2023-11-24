@@ -24,7 +24,8 @@ bool IsTokenCorrect(const Token& token);
 bool IsAlive(const Token& token);
 
 std::shared_ptr<Token> CreateToken();
-void RemoveToken(const Token& token);
+std::shared_ptr<Token> RestoreToken(const std::string& tokenString);
+void                   RemoveToken(const Token& token);
 
 }  // namespace token
 }  // namespace security

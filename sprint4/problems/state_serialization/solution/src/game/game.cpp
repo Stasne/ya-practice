@@ -18,15 +18,18 @@ void Game::AddMap(Map map) {
     }
 }
 
-spGameSession Game::StartGame(const Map& map, std::string_view name) {
-    auto foundSession = std::find_if(sessions_.begin(), sessions_.end(),
-                                     [&map](auto& spSession) { return spSession->GetMap().GetId() == map.GetId(); });
+spGameSession Game::StartGame(const Map& map, std::string_view name, std::optional<uint32_t> id) {
+    auto foundSession = std::find_if(sessions_.begin(), sessions_.end(), [&map](auto& sessionIt) {
+        const auto& spSession = sessionIt.second;
+        return spSession->GetMap().GetId() == map.GetId();
+    });
     if (foundSession != sessions_.end())
-        return *foundSession;
+        return foundSession->second;
 
     double sessionSpeed = defaultSpeed_;
     if (map.GetMapSpeed())
         sessionSpeed = *map.GetMapSpeed();
+
     uint32_t bagCapacity = defaultBagCapacity_;
     if (map.GetBagCapacity())
         bagCapacity = *map.GetBagCapacity();
@@ -40,8 +43,10 @@ spGameSession Game::StartGame(const Map& map, std::string_view name) {
                                                   .randomGeneratorProbability = randomGeneratorProbability_};
     collision_detector::CollisionPrameters collisionParams{
         .dogWidth = defaults::DOG_WIDTH, .officeWidth = defaults::OFFICE_WIDTH, .itemWidth = defaults::ITEM_WIDTH};
-    sessions_.emplace_back(std::make_shared<GameSession>(std::move(config), std::move(collisionParams)));
-    return sessions_.back();  //Т.к. на работу с апи стоит мьютекс, то безопасно
+    auto session = std::make_shared<GameSession>(std::move(config), std::move(collisionParams), id);
+
+    sessions_[session->GetId()] = session;
+    return sessions_.at(session->GetId());  //Т.к. на работу с апи стоит мьютекс, то безопасно
 }
 
 }  // namespace model

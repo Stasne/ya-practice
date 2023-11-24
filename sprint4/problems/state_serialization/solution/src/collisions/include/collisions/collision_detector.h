@@ -16,6 +16,7 @@ struct CollisionPrameters {
     double dogWidth;
     double officeWidth;
     double itemWidth;
+    auto   operator<=>(const CollisionPrameters&) const = default;
 };
 
 struct CollectionResult {
@@ -32,6 +33,7 @@ struct Item {
     uint32_t      ingame_id;
     geom::Point2D position;
     double        width;
+    auto          operator<=>(const Item&) const = default;
 };
 
 struct Gatherer {
@@ -39,6 +41,7 @@ struct Gatherer {
     geom::Point2D start_pos;
     geom::Point2D end_pos;
     double        width;
+    auto          operator<=>(const Gatherer&) const = default;
 };
 
 struct GatheringEvent {
@@ -46,7 +49,8 @@ struct GatheringEvent {
     uint32_t           gatherer_id;
     double             sq_distance;
     double             time;
-    CollisionEventType type = CollisionEventType::ITEM_PICK;
+    CollisionEventType type                                     = CollisionEventType::ITEM_PICK;
+    auto               operator<=>(const GatheringEvent&) const = default;
 };
 
 using Items       = std::unordered_map<uint32_t, Item>;
@@ -69,6 +73,7 @@ public:
         gatherer.start_pos = gatherer.end_pos;
         gatherer.end_pos   = updated_pos;
     }
+    auto operator<=>(const ItemsCollider&) const = default;
 
 private:
     Items       items_;

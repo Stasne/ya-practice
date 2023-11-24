@@ -14,6 +14,7 @@ public:
     using PlayersByDogId    = std::unordered_map<uint32_t, spPlayer>;
     Players()               = default;
 
+    void     AddPlayer(spPlayer player, spToken token) { InsertPlayer(player, token); }
     spPlayer NewPlayer(std::string_view playerName, spToken token) {
         if (!ValidatePlayerName(playerName))
             return nullptr;
@@ -24,7 +25,11 @@ public:
         return player;
     };
     const PlayersCollection& PlayersMap() const { return players_; }
-
+    spPlayer                 PlayerById(uint32_t id) const {
+        if (!players_.count(id))
+            return {};
+        return players_.at(id);
+    }
     std::weak_ptr<Player> PlayerByDog(const Dog& doge) {
         if (!playersByDog_.count(doge.Id()))
             return {};
@@ -35,6 +40,29 @@ public:
         if (!playersByToken_.count(*token))
             return {};
         return playersByToken_.at(*token);
+    }
+    const PlayersByToken& PlayersCredits() const { return playersByToken_; }
+
+    // bool operator==(const Players& r) const {
+    //     if (players_.size() != r.players_.size())
+    //         return false;
+    //     for (const auto& [id, player] : players_) {
+    //         if (r.players_.at(id) != player)
+    //             return false;
+    //     }
+    //     return true;
+    // }
+    bool operator==(const Players& rhs) const {
+        if (players_.size() != rhs.players_.size())
+            return false;
+
+        for (const auto& [id, spPlayer] : players_) {
+            if (!rhs.players_.count(id))
+                return false;
+            if (*spPlayer != *rhs.players_.at(id))
+                return false;
+        }
+        return true;
     }
 
 private:

@@ -7,6 +7,7 @@ static uint32_t SessionId{0};
 }
 using namespace model;
 namespace game {
+
 uint32_t GenerateRandomUint(size_t max) {
     if (max == 1)
         return 0;
@@ -15,6 +16,7 @@ uint32_t GenerateRandomUint(size_t max) {
     std::uniform_int_distribution<std::mt19937::result_type> dist6(0, max - 1);
     return dist6(rng);
 };
+
 RealPoint BoundDogMovementToMap(const RealPoint start, const RealPoint& finish, const Map& map) {
     auto possibleRoads = map.GetRoadsForPoint(start);
 
@@ -55,8 +57,9 @@ RealPoint GetNextMapPoint(const Map& map, bool isRandom = true) {
     return {static_cast<double>(spawnX), static_cast<double>(spawnY)};
 }
 
-GameSession::GameSession(SessionConfiguration&& config, collision_detector::CollisionPrameters&& collisionParams)
-    : id_(SessionId++),
+GameSession::GameSession(SessionConfiguration&& config, collision_detector::CollisionPrameters&& collisionParams,
+                         std::optional<uint32_t> id)
+    : id_(id ? *id : SessionId++),
       name_(config.name.empty() ? config.map.GetName() + '_' + std::to_string(id_) : config.name),
       map_(config.map),
       speed_(config.speed),

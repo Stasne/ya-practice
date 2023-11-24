@@ -39,13 +39,14 @@ if (BUILD_TESTS)
                     "tests/game_loot_tests.cpp" 	
                     "tests/loot_generator_tests.cpp" 	
                     "src/game/*.cpp" "src/game/*.h"
+                    "src/net/*.cpp" "src/net/*.h"
                     "src/utils/*.cpp" "src/utils/*.h")
-    add_executable(game_server_tests ${TEST_SOURCES})
-    target_include_directories(game_server_tests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/utils 
+    add_executable(game_tests ${TEST_SOURCES})
+    target_include_directories(game_tests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/utils 
                                                     ${CMAKE_CURRENT_LIST_DIR}/src/net 
-                                                    ${CMAKE_CURRENT_LIST_DIR}/src/game)
-    target_include_directories(game_server_tests PRIVATE  CONAN_PKG::boost)
-    target_link_libraries(game_server_tests PRIVATE 
+                                                    ${CMAKE_CURRENT_LIST_DIR}/src/game
+                                                    CONAN_PKG::boost)
+    target_link_libraries(game_tests PRIVATE 
                                                     CONAN_PKG::catch2 
                                                     CONAN_PKG::boost 
                                                     Threads::Threads 
@@ -56,5 +57,23 @@ if (BUILD_TESTS)
     target_link_libraries(collision_detection_tests 
                                                 CONAN_PKG::catch2 
                                                 collision_detection_lib)
+
+                                                
+    # save game tests (serialization)
+    file (GLOB_RECURSE TEST_SOURCES_SER
+                    "tests/state-serialization-tests.cpp"
+                    "src/game/*.cpp" "src/game/*.h"
+                    "src/net/*.cpp" "src/net/*.h"
+                    "src/utils/*.cpp" "src/utils/*.h")
+    add_executable(game_saver_tests ${TEST_SOURCES_SER})
+    target_include_directories(game_saver_tests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/utils 
+                                                    ${CMAKE_CURRENT_LIST_DIR}/src/net 
+                                                    ${CMAKE_CURRENT_LIST_DIR}/src/game)
+    target_link_libraries(game_saver_tests PRIVATE 
+                                                    CONAN_PKG::catch2 
+                                                    CONAN_PKG::boost 
+                                                    DogsModel 
+                                                    collision_detection_lib) 
+
 
 endif(BUILD_TESTS)

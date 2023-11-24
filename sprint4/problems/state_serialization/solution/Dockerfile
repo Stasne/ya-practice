@@ -35,4 +35,4 @@ COPY ./static /app/static
 # Запускаем игровой сервер
 #--randomize-spawn-points 
 #--tick-period=50
-ENTRYPOINT ["/app/game_server", "--config-file=/app/data/config.json", "--www-root=/app/static/"] 
+ENTRYPOINT ["/app/game_server", "--config-file=/app/data/config.json", "--www-root=/app/static",  "--randomize-spawn-points", "--tick-period=100", "--save-state-period=2000", "--state-file=/tmp/save.save" ] 
