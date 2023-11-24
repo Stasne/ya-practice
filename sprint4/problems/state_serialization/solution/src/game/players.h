@@ -2,6 +2,7 @@
 #include <token_machine.h>
 #include <boost/algorithm/string.hpp>
 #include "player.h"
+
 namespace game {
 
 using Token    = security::token::Token;
@@ -16,10 +17,8 @@ public:
 
     void     AddPlayer(spPlayer player, spToken token) { InsertPlayer(player, token); }
     spPlayer NewPlayer(std::string_view playerName, spToken token) {
-        if (!ValidatePlayerName(playerName))
-            return nullptr;
 
-        auto player = std::make_shared<Player>(playerName, token);
+        auto player = std::make_shared<Player>(playerName, token, GetAvailablPlayerIndex());
         InsertPlayer(player, token);
 
         return player;
@@ -43,15 +42,6 @@ public:
     }
     const PlayersByToken& PlayersCredits() const { return playersByToken_; }
 
-    // bool operator==(const Players& r) const {
-    //     if (players_.size() != r.players_.size())
-    //         return false;
-    //     for (const auto& [id, player] : players_) {
-    //         if (r.players_.at(id) != player)
-    //             return false;
-    //     }
-    //     return true;
-    // }
     bool operator==(const Players& rhs) const {
         if (players_.size() != rhs.players_.size())
             return false;
@@ -66,16 +56,18 @@ public:
     }
 
 private:
-    bool ValidatePlayerName(std::string_view playerName) const {
-        return std::find_if(players_.begin(), players_.end(), [playerName](auto&& player) {
-                   return boost::iequals(player.second->Name(), playerName);
-               }) == players_.end();
-    }
     void InsertPlayer(spPlayer player, spToken token) {
         // balya, a eto ne 'too much' 3 collections?
         players_[player->Id()]                = player;
         playersByToken_[**token.get()]        = player;  //key shared/weak? i dunno. by value yet
         playersByDog_[player->GetDog()->Id()] = player;
+    }
+    uint32_t GetAvailablPlayerIndex() const {
+        static uint32_t Player_id{0};
+        while (players_.count(Player_id))
+            ++Player_id;
+
+        return Player_id;
     }
 
 private:

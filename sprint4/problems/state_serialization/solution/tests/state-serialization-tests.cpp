@@ -137,7 +137,9 @@ SCENARIO_METHOD(Fixture, "game Serialization") {
             }
         }
         WHEN("Game deserialized") {
-            InputArchive            input_archive{strm};
+
+            InputArchive input_archive{strm};
+
             serialization::GameRepr repr;
             input_archive >> repr;
             repr.RestoreGame(restoredGame);

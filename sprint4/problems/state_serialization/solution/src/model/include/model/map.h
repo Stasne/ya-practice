@@ -108,7 +108,7 @@ public:
     RealPoint FitPointToRoad(const RealPoint& point) const {
         auto boundPoint = point;
         boundPoint.x    = std::clamp(boundPoint.x, lbotX_, rtopX_);
-        boundPoint.y    = std::clamp(boundPoint.y, lbotY_, rtopY_);
+        boundPoint.y    = std::clamp(boundPoint.y, rtopY_, lbotY_);
         return boundPoint;
     }
     auto operator<=>(const Road&) const = default;

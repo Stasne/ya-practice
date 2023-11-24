@@ -27,7 +27,7 @@ using DogDirection = util::Tagged<std::string, detail::DirectionTag>;
 
 namespace misc {
 static const std::unordered_set<std::string_view> ValidActions{actions::Up, actions::Down, actions::Left,
-                                                               actions::Right};
+                                                               actions::Right, actions::Stop};
 }
 
 using SpeedUnit          = double;
@@ -76,6 +76,11 @@ public:
         }
     }
     void SetDirection(game::DogDirection action, double speed = 0) {
+        if (*action == actions::Stop) {
+            SetSpeed(0);
+            return;
+        }
+
         dir_ = action;
         SetSpeed(speed);
     }

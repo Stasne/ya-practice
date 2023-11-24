@@ -11,8 +11,9 @@ namespace game {
 uint32_t GenerateRandomUint(size_t max) {
     if (max == 1)
         return 0;
+    static uint32_t                                          seed{0};
     std::random_device                                       dev;
-    std::mt19937                                             rng(dev());
+    std::mt19937                                             rng(dev() + seed++);
     std::uniform_int_distribution<std::mt19937::result_type> dist6(0, max - 1);
     return dist6(rng);
 };
@@ -44,12 +45,11 @@ RealPoint GetNextMapPoint(const Map& map, bool isRandom = true) {
     if (!isRandom)
         return {static_cast<double>(roads.front().GetStart().x), static_cast<double>(roads.front().GetStart().y)};
 
-    static uint32_t seed{0};
-    const auto&     chosenRoad = roads[GenerateRandomUint(roads.size())];
-    uint32_t        lowestX    = std::min(chosenRoad.GetStart().x, chosenRoad.GetEnd().x);
-    uint32_t        highestX   = std::max(chosenRoad.GetStart().x, chosenRoad.GetEnd().x);
-    uint32_t        lowestY    = std::min(chosenRoad.GetStart().y, chosenRoad.GetEnd().y);
-    uint32_t        highestY   = std::max(chosenRoad.GetStart().y, chosenRoad.GetEnd().y);
+    const auto& chosenRoad = roads[GenerateRandomUint(roads.size())];
+    uint32_t    lowestX    = std::min(chosenRoad.GetStart().x, chosenRoad.GetEnd().x);
+    uint32_t    highestX   = std::max(chosenRoad.GetStart().x, chosenRoad.GetEnd().x);
+    uint32_t    lowestY    = std::min(chosenRoad.GetStart().y, chosenRoad.GetEnd().y);
+    uint32_t    highestY   = std::max(chosenRoad.GetStart().y, chosenRoad.GetEnd().y);
 
     uint32_t roadLength = std::max(highestX - lowestX, highestY - lowestY);
     auto     spawnX     = std::clamp(lowestX + GenerateRandomUint(roadLength), lowestX, highestX);
@@ -92,9 +92,10 @@ void GameSession::DogAction(uint32_t dogId, DogDirection action) {
 
 void GameSession::UpdateState(uint32_t tick_ms) {
     UpdateDogsPosition(tick_ms);
-    UpdateCollidableState();
+    UpdateGatherersPositions();
     ProcessCollisions();
     SpawnLoot(tick_ms);
+    UpdateGatheringItems();
 }
 void GameSession::UpdateDogsPosition(uint32_t tick_ms) {
     for (auto& [_, player] : players_) {
@@ -106,27 +107,32 @@ void GameSession::UpdateDogsPosition(uint32_t tick_ms) {
             spdog->SetSpeed(0);
     }
 }
-void GameSession::UpdateCollidableState() {
+void GameSession::UpdateGatherersPositions() {
     // обновляет новую позицию собаки
     for (auto& [_, player] : players_) {
         auto& spdog = player.dog;
         collider_.UpdateNextTickPosition(spdog->Id(), {spdog->Position().x, spdog->Position().y});
     }
 }
+void GameSession::UpdateGatheringItems() {
+    for (const auto& [id, item] : lootPositions_)
+        collider_.AddItem({id, {item.pos.x, item.pos.y}, colliderParams_.itemWidth});
+}
 void GameSession::ProcessCollisions() {
     auto events = FindGatherEvents(collider_);
     for (const auto& e : events) {
-        auto type = e.type;
-        switch (type) {
+        auto collisionType = e.type;
+        switch (collisionType) {
             case collision_detector::CollisionEventType::ITEM_PICK: {
                 if (!lootPositions_.count(e.item_id))  //item already picked
                     continue;
 
                 auto& player = players_.at(e.gatherer_id);
+                auto& item   = lootPositions_.at(e.item_id);
                 if (player.bag.size() >= bagCapacity_)  // bag is full
                     continue;
                 // add item to dogs' bag
-                player.bag.push_back({e.item_id, lootPositions_[e.item_id].type});
+                player.bag.push_back({e.item_id, item.type});
                 // remove item from map
                 lootPositions_.erase(e.item_id);
                 break;
@@ -134,10 +140,7 @@ void GameSession::ProcessCollisions() {
             case collision_detector::CollisionEventType::ITEM_DROP: {
                 auto& player = players_.at(e.gatherer_id);
                 for (const auto& item : player.bag) {
-                    // get item's value (from map config)
-                    assert(item.item_id < map_.GetLootTypes().size());
-                    // add scores
-                    player.score += map_.GetLootTypes()[item.item_id].value;
+                    player.score += map_.GetLootTypes()[lootPositions_.at(item.item_id).type].value;
                 }
                 player.bag.clear();
                 break;
@@ -151,8 +154,9 @@ void GameSession::SpawnLoot(uint32_t tick_ms) {
         return;
     static uint32_t lootNum;
     for (auto i = 0; i < lootToSpawn; ++i) {
-        auto lootType = GenerateRandomUint(map_.GetLootTypes().size());
-        lootPositions_.insert({lootNum++, {GetNextMapPoint(map_), lootType}});
+        auto lootType  = GenerateRandomUint(map_.GetLootTypes().size());
+        auto lootPoint = GetNextMapPoint(map_);
+        lootPositions_.insert({lootNum++, {lootPoint, lootType}});
     }
 }
 

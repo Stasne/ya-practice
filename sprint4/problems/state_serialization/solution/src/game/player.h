@@ -8,12 +8,6 @@
 
 namespace game {
 
-namespace misc {
-// static uint32_t Dog_id{0}; // lets make same with player
-static uint32_t Player_id{0};
-
-}  // namespace misc
-
 using namespace std::literals;
 
 using Token         = security::token::Token;
@@ -23,8 +17,9 @@ using spGameSession = std::shared_ptr<GameSession>;
 class Player : public std::enable_shared_from_this<Player> {
 public:
     Player(spDog doge, spToken token) : id_(doge->Id()), name_(doge->GetName()), dog_(doge), token_(token) {}
-    Player(std::string_view name, spToken token)
-        : dog_(std::make_shared<game::Dog>(name, id_)), token_(token), name_(name), id_(misc::Player_id++) {}
+    Player(std::string_view name, spToken token, uint32_t id)
+        : dog_(std::make_shared<game::Dog>(name, id_)), token_(token), name_(name), id_(id) {}
+
     std::string_view Name() const { return name_; }
     uint32_t         Id() const { return id_; }
     const spDog      GetDog() const { return dog_; }  // naming issue
@@ -40,7 +35,6 @@ private:
     uint32_t    id_;
     std::string name_;
     spToken     token_;
-    // spGameSession session_;
-    spDog dog_;
+    spDog       dog_;
 };
 }  // namespace game

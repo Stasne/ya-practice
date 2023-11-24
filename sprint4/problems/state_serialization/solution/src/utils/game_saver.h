@@ -15,7 +15,8 @@ private:
     model::Game&              game_;
     std::chrono::milliseconds msSinceLastSave_;
     std::chrono::milliseconds autoSavePeriod_ms_;
-    std::filesystem::path     stateFile_;
+    std::filesystem::path     targetStateFile_;  // целевой файл сохранения
+    std::filesystem::path     activeStateFile_;  // файл для работы
     bool                      savingEnabled_{false};
     bool                      autosavingEnabled{false};
 };

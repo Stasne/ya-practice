@@ -18,19 +18,22 @@ GameSaver::GameSaver(model::Game& game, std::string_view file_path, std::optiona
     : game_(game),
       autoSavePeriod_ms_(autosave_period_ms ? std::chrono::milliseconds(*autosave_period_ms)
                                             : std::chrono::milliseconds(0)),
-      stateFile_(file_path),
+      targetStateFile_(file_path),
+      activeStateFile_(file_path),
       autosavingEnabled(autosave_period_ms.has_value()) {
 
     if (!file_path.empty()) {
-        SaveText.append(stateFile_);
-        LoadText.append(stateFile_);
-        std::ifstream istateStream(stateFile_);
+        LoadText.append(targetStateFile_);
+        SaveText.append(targetStateFile_);
+
+        std::ifstream istateStream(targetStateFile_);
         if (istateStream.good()) {
             LoadGame();
             savingEnabled_ = true;
         }
+        activeStateFile_ = fs::path(std::string(file_path) + "_active"s);
 
-        std::ofstream ostateStream(stateFile_);
+        std::ofstream ostateStream(activeStateFile_);
         if (ostateStream.good()) {
             savingEnabled_ = true;
         }
@@ -48,7 +51,7 @@ void GameSaver::TimeTicked(std::chrono::milliseconds delta) {
     }
 }
 void GameSaver::LoadGame() {
-    std::ifstream           infile(stateFile_);
+    std::ifstream           infile(targetStateFile_);
     InputArchive            ia{infile};
     serialization::GameRepr repr;
     ia >> repr;
@@ -60,11 +63,12 @@ void GameSaver::SaveGame() {
     if (!savingEnabled_)
         return;
     serialization::GameRepr repr{game_};
-    std::ofstream           stateStream(stateFile_);
+    std::ofstream           stateStream(activeStateFile_);
     OutputArchive           oa{stateStream};
     oa << repr;
     stateStream.flush();
     stateStream.close();
+    fs::rename(activeStateFile_, targetStateFile_);
     Logger::Message(SaveText);
 }
 

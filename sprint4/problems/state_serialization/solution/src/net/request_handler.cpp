@@ -147,7 +147,7 @@ StringResponse RequestHandler::GetGameState(const Token& token, std::string_view
 
     auto session = game_.FindGame(wpPlayer.lock()->GetDog()->Id());
     if (!session)
-        return http_handler::Response::MakeErrorUnknownToken("No game session was found for u");
+        return http_handler::Response::MakeErrorUnknownToken("Player token has not been found");
 
     boost::json::object jObjectPlayers;
     const auto&         players = session->GetPlayers();
@@ -168,9 +168,8 @@ StringResponse RequestHandler::GetGameState(const Token& token, std::string_view
     boost::json::object jObjectLoot;
     const auto&         mapLoot = session->GetLoot();
 
-    size_t lootNum{0};
-    for (const auto& loot : mapLoot) {
-        jObjectLoot[to_string(lootNum++)] = utils::serialization::ToJsonObject(loot.second);
+    for (const auto& [id, loot] : mapLoot) {
+        jObjectLoot[to_string(id)] = utils::serialization::ToJsonObject(loot);
     }
 
     auto                content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
@@ -204,7 +203,7 @@ StringResponse RequestHandler::PostPlayerAction(const Token& token, std::string_
 
     auto session = game_.FindGame(wpPlayer.lock()->GetDog()->Id());
     if (!session)
-        return http_handler::Response::MakeErrorUnknownToken("No game session was found for u");
+        return http_handler::Response::MakeErrorUnknownToken("Player token has not been found");
 
     auto action = game::DogDirection(move);
     session->DogAction(wpPlayer.lock()->GetDog()->Id(), action);

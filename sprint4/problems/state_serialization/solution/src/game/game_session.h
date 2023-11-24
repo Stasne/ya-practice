@@ -64,22 +64,27 @@ public:
         players_.at(id).bag   = std::move(bag);
         players_.at(id).score = score;
     }
-    void RestoreMapLoot(LootPositions lp) { lootPositions_ = std::move(lp); }
+    void RestoreMapLoot(LootPositions lp) {
+        lootPositions_ = std::move(lp);
+        UpdateGatheringItems();
+    }
 
     bool operator==(const GameSession& rhs) const {
         bool baseParams = id_ == rhs.GetId() && map_ == rhs.GetMap() && name_ == rhs.GetName();
         if (!baseParams)
             return false;
-        return players_ == rhs.players_ && speed_ == rhs.speed_ && map_ == rhs.map_ &&
-               bagCapacity_ == rhs.bagCapacity_ && randomSpawn_ == rhs.randomSpawn_ &&
-               lootPositions_ == rhs.lootPositions_ && colliderParams_ == rhs.colliderParams_ &&
-               collider_ == rhs.collider_;
+        bool p1 = players_ == rhs.players_ && speed_ == rhs.speed_ && map_ == rhs.map_;
+        bool p2 = bagCapacity_ == rhs.bagCapacity_ && randomSpawn_ == rhs.randomSpawn_;
+        bool p3 = lootPositions_ == rhs.lootPositions_ && colliderParams_ == rhs.colliderParams_;
+        bool p4 = collider_ == rhs.collider_;
+        return p1 && p2 && p3 && p4;
     }
 
 private:
     void UpdateDogsPosition(uint32_t tick_ms);
     void SpawnLoot(uint32_t tick_ms);
-    void UpdateCollidableState();
+    void UpdateGatherersPositions();
+    void UpdateGatheringItems();
     void ProcessCollisions();
 
 private:

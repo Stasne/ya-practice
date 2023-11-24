@@ -148,6 +148,7 @@ public:
                 std::find_if(maps.cbegin(), maps.cend(), [&](const auto& map) { return map.GetName() == sr.mapName; });
             if (mapIt == maps.cend())
                 throw std::runtime_error("Restoring game error: unknown mapname" + sr.mapName);
+
             auto session = game.StartGame(*mapIt, sr.sessionName, sr.sid);
             session->RestoreMapLoot(sr.mapLootRepr);
             for (const auto& [id, p] : sr.playersRepr) {
@@ -168,35 +169,5 @@ private:
     std::unordered_map<uint32_t, SessionRepr> sessionsRepr_;
     PlayersHandlerRepr                        playersHandlerRepr_;
 };
-
-// class GameSessionRepr {
-// public:
-//     GameSessionRepr() = default;
-//     struct SessionRestoreInfo {
-//         std::string           mapName;
-//         std::string           sessionName;
-//         std::vector<uint32_t> dogsIds;
-//     };
-//     explicit GameSessionRepr(const game::GameSession& gs) {
-//         // for (const auto& [token, spPlayer] : ph.PlayersCredits()) {
-//         //     credits_[token] = DogRepr(*spPlayer->GetDog());
-//         // }
-//     }
-
-//     [[nodiscard]] game::GameSession Restore() const {
-//         // game::GameSession session;
-
-//         // return session;
-//     }
-
-//     template <typename Archive>
-//     void serialize(Archive& ar, [[maybe_unused]] const unsigned version) {
-//         ar & credits_;
-//     }
-
-// private:
-//     // saving parameters
-//     // std::unordered_map<std::string /*token*/, DogRepr> credits_;
-// };
 
 }  // namespace serialization
