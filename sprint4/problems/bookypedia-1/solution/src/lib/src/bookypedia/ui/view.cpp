@@ -4,8 +4,8 @@
 #include <cassert>
 #include <iostream>
 
-#include "../app/use_cases.h"
-#include "../menu/menu.h"
+#include <bookypedia/app/use_cases.h>
+#include <bookypedia/menu/menu.h>
 
 using namespace std::literals;
 namespace ph = std::placeholders;
@@ -34,21 +34,16 @@ void PrintVector(std::ostream& out, const std::vector<T>& vector) {
 }
 
 View::View(menu::Menu& menu, app::UseCases& use_cases, std::istream& input, std::ostream& output)
-    : menu_{menu}
-    , use_cases_{use_cases}
-    , input_{input}
-    , output_{output} {
+    : menu_{menu}, use_cases_{use_cases}, input_{input}, output_{output} {
     menu_.AddAction(  //
         "AddAuthor"s, "name"s, "Adds author"s, std::bind(&View::AddAuthor, this, ph::_1)
-        // либо
+        // Р»РёР±Рѕ
         // [this](auto& cmd_input) { return AddAuthor(cmd_input); }
     );
-    menu_.AddAction("AddBook"s, "<pub year> <title>"s, "Adds book"s,
-                    std::bind(&View::AddBook, this, ph::_1));
+    menu_.AddAction("AddBook"s, "<pub year> <title>"s, "Adds book"s, std::bind(&View::AddBook, this, ph::_1));
     menu_.AddAction("ShowAuthors"s, {}, "Show authors"s, std::bind(&View::ShowAuthors, this));
     menu_.AddAction("ShowBooks"s, {}, "Show books"s, std::bind(&View::ShowBooks, this));
-    menu_.AddAction("ShowAuthorBooks"s, {}, "Show author books"s,
-                    std::bind(&View::ShowAuthorBooks, this));
+    menu_.AddAction("ShowAuthorBooks"s, {}, "Show author books"s, std::bind(&View::ShowAuthorBooks, this));
 }
 
 bool View::AddAuthor(std::istream& cmd_input) const {

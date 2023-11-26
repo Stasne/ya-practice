@@ -1,16 +1,14 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "../src/app/use_cases_impl.h"
-#include "../src/domain/author.h"
+#include <bookypedia/app/use_cases_impl.h>
+#include <bookypedia/domain/author.h>
 
 namespace {
 
-struct MockAuthorRepository : domain::AuthorRepository {
+struct MockAuthorRepository : domain::IAuthorRepository {
     std::vector<domain::Author> saved_authors;
 
-    void Save(const domain::Author& author) override {
-        saved_authors.emplace_back(author);
-    }
+    void Save(const domain::Author& author) override { saved_authors.emplace_back(author); }
 };
 
 struct Fixture {

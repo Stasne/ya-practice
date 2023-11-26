@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "../src/util/tagged_uuid.h"
+#include <bookypedia/util/tagged_uuid.h>
 
 using util::TaggedUUID;
 
@@ -11,6 +11,6 @@ using TestUUID = TaggedUUID<TestTag>;
 
 TEST_CASE("UUID-String conversion") {
     auto uuid = TestUUID::New();
-    auto s = uuid.ToString();
+    auto s    = uuid.ToString();
     CHECK(TestUUID::FromString(s) == uuid);
 }

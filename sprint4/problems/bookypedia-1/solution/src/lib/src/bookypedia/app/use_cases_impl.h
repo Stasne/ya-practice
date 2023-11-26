@@ -1,19 +1,17 @@
 #pragma once
-#include "../domain/author_fwd.h"
+#include <bookypedia/domain/domain_fwd.h>
 #include "use_cases.h"
 
 namespace app {
 
 class UseCasesImpl : public UseCases {
 public:
-    explicit UseCasesImpl(domain::AuthorRepository& authors)
-        : authors_{authors} {
-    }
+    explicit UseCasesImpl(domain::IAuthorRepository& authors) : authors_{authors} {}
 
     void AddAuthor(const std::string& name) override;
 
 private:
-    domain::AuthorRepository& authors_;
+    domain::IAuthorRepository& authors_;
 };
 
 }  // namespace app

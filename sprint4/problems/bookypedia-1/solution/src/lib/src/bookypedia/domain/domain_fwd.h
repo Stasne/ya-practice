@@ -3,7 +3,8 @@
 namespace domain {
 
 class Author;
-
-class AuthorRepository;
+class IAuthorRepository;
+class Book;
+class IBookRepository;
 
 }  // namespace domain

@@ -2,7 +2,7 @@
 #include <functional>
 #include <iosfwd>
 #include <map>
-
+#include <string>
 namespace menu {
 
 class Menu {
@@ -11,8 +11,7 @@ public:
 
     Menu(std::istream& input, std::ostream& output);
 
-    void AddAction(std::string action_name, std::string args, std::string description,
-                   Handler handler);
+    void AddAction(std::string action_name, std::string args, std::string description, Handler handler);
 
     void Run();
 
@@ -20,15 +19,15 @@ public:
 
 private:
     struct ActionInfo {
-        Handler handler;
+        Handler     handler;
         std::string args;
         std::string description;
     };
 
     [[nodiscard]] bool ParseCommand(std::istream& input);
 
-    std::istream& input_;
-    std::ostream& output_;
+    std::istream&                     input_;
+    std::ostream&                     output_;
     std::map<std::string, ActionInfo> actions_;
 };
 

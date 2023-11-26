@@ -2,17 +2,15 @@
 
 #include <iostream>
 
-#include "menu/menu.h"
-#include "postgres/postgres.h"
-#include "ui/view.h"
+#include <bookypedia/menu/menu.h>
+#include <bookypedia/postgres/postgres.h>
+#include <bookypedia/ui/view.h>
 
 namespace bookypedia {
 
 using namespace std::literals;
 
-Application::Application(const AppConfig& config)
-    : db_{pqxx::connection{config.db_url}} {
-}
+Application::Application(const AppConfig& config) : db_{pqxx::connection{config.db_url}} {}
 
 void Application::Run() {
     menu::Menu menu{std::cin, std::cout};
@@ -20,9 +18,7 @@ void Application::Run() {
         menu.ShowInstructions();
         return true;
     });
-    menu.AddAction("Exit"s, {}, "Exit program"s, [&menu](std::istream&) {
-        return false;
-    });
+    menu.AddAction("Exit"s, {}, "Exit program"s, [&menu](std::istream&) { return false; });
     ui::View view{menu, use_cases_, std::cin, std::cout};
     menu.Run();
 }
