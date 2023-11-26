@@ -10,7 +10,7 @@ constexpr auto drop_books_table   = "drop_book_table"_zv;
 
 namespace prepared_query {
 constexpr auto create_books_table =
-    "CREATE TABLE IF NOT EXISTS books (id SERIAL PRIMARY KEY, title varchar(200) NOT NULL, author varchar(200) NOT NULL, year integer NOT NULL, ISBN char(13) NULL UNIQUE);"_zv;
+    "CREATE TABLE IF NOT EXISTS books (id SERIAL PRIMARY KEY, title varchar(200) NOT NULL, author varchar(200) NOT NULL, year integer NOT NULL, ISBN varchar(13) NULL UNIQUE);"_zv;
 constexpr auto insert_book = "INSERT INTO books (title, author, year, isbn) VALUES ($1, $2, $3, $4)"_zv;
 constexpr auto drop_table  = "DROP TABLE IF EXISTS books;"_zv;
 }  // namespace prepared_query
