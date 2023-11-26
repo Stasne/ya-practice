@@ -5,16 +5,10 @@
 
 namespace menu {
 
-Menu::Menu(std::istream& input, std::ostream& output)
-    : input_{input}
-    , output_{output} {
-}
+Menu::Menu(std::istream& input, std::ostream& output) : input_{input}, output_{output} {}
 
-void Menu::AddAction(std::string action_name, std::string args, std::string description,
-                     Handler handler) {
-    if (!actions_
-             .try_emplace(std::move(action_name), std::move(handler), std::move(args),
-                          std::move(description))
+void Menu::AddAction(std::string action_name, std::string args, std::string description, Handler handler) {
+    if (!actions_.try_emplace(std::move(action_name), std::move(handler), std::move(args), std::move(description))
              .second) {
         throw std::invalid_argument("A command has been added already");
     }
@@ -35,15 +29,15 @@ void Menu::ShowInstructions() const {
         return;
     }
     size_t actions_width = 0;
-    size_t args_width = 0;
+    size_t args_width    = 0;
     for (const auto& [action_name, info] : actions_) {
         actions_width = std::max(actions_width, action_name.length());
-        args_width = std::max(args_width, info.args.length());
+        args_width    = std::max(args_width, info.args.length());
     }
 
-    const auto old_flags = output_.flags();
-    const auto old_fill = output_.fill();
-    auto restore_flags = [this, old_fill, old_flags] {
+    const auto old_flags     = output_.flags();
+    const auto old_fill      = output_.fill();
+    auto       restore_flags = [this, old_fill, old_flags] {
         output_.fill(old_fill);
         output_.setf(old_flags);
     };
@@ -77,6 +71,7 @@ bool Menu::ParseCommand(std::istream& input) {
             }
         } else {
             output_ << "Invalid command"sv << std::endl;
+            return false;
         }
     } catch (const std::exception& e) {
         output_ << e.what() << std::endl;

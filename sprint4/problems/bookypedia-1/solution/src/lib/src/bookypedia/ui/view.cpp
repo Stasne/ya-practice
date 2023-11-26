@@ -1,11 +1,12 @@
 #include "view.h"
 
+#include <bookypedia/app/use_cases.h>
+#include <bookypedia/domain/author.h>
+#include <bookypedia/domain/book.h>
+#include <bookypedia/menu/menu.h>
 #include <boost/algorithm/string/trim.hpp>
 #include <cassert>
 #include <iostream>
-
-#include <bookypedia/app/use_cases.h>
-#include <bookypedia/menu/menu.h>
 
 using namespace std::literals;
 namespace ph = std::placeholders;
@@ -61,7 +62,9 @@ bool View::AddAuthor(std::istream& cmd_input) const {
 bool View::AddBook(std::istream& cmd_input) const {
     try {
         if (auto params = GetBookParams(cmd_input)) {
-            assert(!"TODO: implement book adding");
+            domain::Book newBook(domain::BookId::New(), params->title, params->publication_year,
+                                 domain::AuthorId::FromString(params->author_id));
+            use_cases_.AddBook(newBook);
         }
     } catch (const std::exception&) {
         output_ << "Failed to add book"sv << std::endl;
@@ -107,6 +110,30 @@ std::optional<detail::AddBookParams> View::GetBookParams(std::istream& cmd_input
     }
 }
 
+std::vector<detail::AuthorInfo> View::GetAuthors() const {
+    std::vector<detail::AuthorInfo> dst_autors;
+    auto                            dbauthors = use_cases_.GetAuthors();
+    for (const auto& a : dbauthors)
+        dst_autors.push_back({a.GetId().ToString(), a.GetName()});
+    return dst_autors;
+}
+
+std::vector<detail::BookInfo> View::GetBooks() const {
+    std::vector<detail::BookInfo> books;
+    auto                          dbbooks = use_cases_.GetBooks();
+    for (const auto& b : dbbooks)
+        books.push_back({b.GetTitle(), b.GetYear()});
+    return books;
+}
+
+std::vector<detail::BookInfo> View::GetAuthorBooks(const std::string& author_id) const {
+    std::vector<detail::BookInfo> books;
+    auto                          dbbooks = use_cases_.GetAuthorBooks(author_id);
+    for (const auto& b : dbbooks)
+        books.push_back({b.GetTitle(), b.GetYear()});
+    return books;
+}
+
 std::optional<std::string> View::SelectAuthor() const {
     output_ << "Select author:" << std::endl;
     auto authors = GetAuthors();
@@ -132,23 +159,4 @@ std::optional<std::string> View::SelectAuthor() const {
 
     return authors[author_idx].id;
 }
-
-std::vector<detail::AuthorInfo> View::GetAuthors() const {
-    std::vector<detail::AuthorInfo> dst_autors;
-    assert(!"TODO: implement GetAuthors()");
-    return dst_autors;
-}
-
-std::vector<detail::BookInfo> View::GetBooks() const {
-    std::vector<detail::BookInfo> books;
-    assert(!"TODO: implement GetBooks()");
-    return books;
-}
-
-std::vector<detail::BookInfo> View::GetAuthorBooks(const std::string& author_id) const {
-    std::vector<detail::BookInfo> books;
-    assert(!"TODO: implement GetAuthorBooks()");
-    return books;
-}
-
 }  // namespace ui

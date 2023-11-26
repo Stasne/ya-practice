@@ -9,9 +9,11 @@ namespace postgres {
 
 class AuthorRepositoryImpl : public domain::IAuthorRepository {
 public:
-    explicit AuthorRepositoryImpl(pqxx::connection& connection) : connection_{connection} {}
+    explicit AuthorRepositoryImpl(pqxx::connection& connection);
 
-    void Save(const domain::Author& author) override;
+    void                        Save(const domain::Author& author) override;
+    std::vector<domain::Author> Load() override;
+    void                        Prepare();
 
 private:
     pqxx::connection& connection_;
@@ -19,9 +21,12 @@ private:
 
 class BookRepositoryImpl : public domain::IBookRepository {
 public:
-    explicit BookRepositoryImpl(pqxx::connection& connection) : connection_{connection} {}
+    explicit BookRepositoryImpl(pqxx::connection& connection);
 
-    void Save(const domain::Book& author) override;
+    void                      Save(const domain::Book& book) override;
+    std::vector<domain::Book> Load() override;
+    std::vector<domain::Book> Load(domain::AuthorId authotId) override;
+    void                      Prepare();
 
 private:
     pqxx::connection& connection_;
