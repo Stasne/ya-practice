@@ -10,11 +10,14 @@ public:
         : authors_{authors}, books_(books) {}
 
     void                        AddAuthor(const std::string& name) override;
-    std::vector<domain::Author> GetAuthors() const override;
+    void                        EditAuthor(const domain::Author& edited) override;
+    void                        DeleteAuthor(const domain::AuthorId& bookId) override;
+    std::vector<domain::Author> GetAuthors(const std::string& name) const override;
 
     void                      AddBook(const domain::Book& name) override;
-    std::vector<domain::Book> GetBooks() const override;
+    std::vector<domain::Book> GetBooks(const std::string& name) const override;
     std::vector<domain::Book> GetAuthorBooks(const std::string& authorId) const override;
+    void                      DeleteBook(const domain::BookId& bookId) override;
 
 private:
     domain::IAuthorRepository& authors_;

@@ -10,26 +10,34 @@ using namespace std::literals;
 using pqxx::operator"" _zv;
 
 namespace prepared_tag {
-constexpr auto show_books        = "select_books"_zv;
-constexpr auto show_author_books = "select_author_books"_zv;
-constexpr auto add_book          = "insert_book"_zv;
-constexpr auto show_authors      = "select_authors"_zv;
-constexpr auto add_author        = "insert_author"_zv;
+constexpr auto show_books               = "select_books"_zv;
+constexpr auto show_books_joined_author = "select_books_with_authors"_zv;
+constexpr auto show_author_books        = "select_author_books"_zv;
+constexpr auto delete_book              = "delete_book"_zv;
+constexpr auto add_book                 = "insert_book"_zv;
+constexpr auto show_authors             = "select_authors"_zv;
+constexpr auto add_author               = "insert_author"_zv;
+constexpr auto delete_author            = "delete_author"_zv;
 }  // namespace prepared_tag
 
 namespace prepared_query {
 constexpr auto insert_book =
     R"(INSERT INTO books (id, title, author_id, publication_year) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET author_id=$3, publication_year=$4;)"_zv;
-
+constexpr auto select_books_join_authors =
+    R"(SELECT books.title, authors.name, books.publication_year FROM books JOIN authors ON books.author_id = authors.id ORDER BY books.title, authors.name, books.publication_year ASC;)"_zv;
 constexpr auto select_books = R"(SELECT * FROM books ORDER BY publication_year DESC, title;)"_zv;
+constexpr auto select_book_detailed =
+    R"(SELECT books.id, books.title, authors.name, books.publication_year, GROUP_CONCAT(book_tags.tag ORDER BY book_tags.tag ASC SEPARATOR ', ') AS tags FROM books JOIN authors ON books.author_id = authors.id LEFT JOIN book_tags ON books.id = book_tags.book_id GROUP BY books.id, books.title, authors.name, books.publication_year)"_zv;
+
 constexpr auto select_books_by_aid =
     R"(SELECT id, title, author_id, publication_year FROM books WHERE author_id=$1 ORDER BY publication_year, title;)"_zv;
 constexpr auto insert_author =
     R"(INSERT INTO authors (id, name) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET name=$2;)"_zv;
-
+constexpr auto delete_author      = R"(DELETE FROM authors WHERE id=$1;)"_zv;
 constexpr auto select_authors     = R"(SELECT * FROM authors ORDER BY name;)"_zv;
 constexpr auto drop_books_table   = R"(DROP TABLE IF EXISTS books;)"_zv;
 constexpr auto drop_authors_table = R"(DROP TABLE IF EXISTS authors;)"_zv;
+constexpr auto delete_book        = R"(DELETE FROM books WHERE id=$1;)"_zv;
 }  // namespace prepared_query
 
 /*
@@ -40,6 +48,7 @@ AuthorRepositoryImpl::AuthorRepositoryImpl(pqxx::connection& connection) : conne
 void AuthorRepositoryImpl::Prepare() {
     connection_.prepare(prepared_tag::add_author, prepared_query::insert_author);
     connection_.prepare(prepared_tag::show_authors, prepared_query::select_authors);
+    connection_.prepare(prepared_tag::delete_author, prepared_query::delete_author);
 }
 
 void AuthorRepositoryImpl::Save(const domain::Author& author) {
@@ -53,7 +62,7 @@ void AuthorRepositoryImpl::Save(const domain::Author& author) {
     work.commit();
 }
 
-std::vector<domain::Author> AuthorRepositoryImpl::Load() {
+std::vector<domain::Author> AuthorRepositoryImpl::Load(const std::string& name) {
     std::vector<domain::Author> result;
     pqxx::read_transaction      r(connection_);
 
@@ -61,6 +70,10 @@ std::vector<domain::Author> AuthorRepositoryImpl::Load() {
         result.emplace_back(domain::AuthorId::FromString(id), name);
     }
     return result;
+}
+
+void AuthorRepositoryImpl::Delete(const domain::AuthorId& authorId) {
+    //
 }
 
 /*
@@ -72,6 +85,7 @@ BookRepositoryImpl::BookRepositoryImpl(pqxx::connection& connection) : connectio
 void BookRepositoryImpl::Prepare() {
     connection_.prepare(prepared_tag::add_book, prepared_query::insert_book);
     connection_.prepare(prepared_tag::show_books, prepared_query::select_books);
+    connection_.prepare(prepared_tag::delete_book, prepared_query::delete_book);
     connection_.prepare(prepared_tag::show_author_books, prepared_query::select_books_by_aid);
 }
 
@@ -83,7 +97,7 @@ void BookRepositoryImpl::Save(const domain::Book& book) {
     work.commit();
 }
 
-std::vector<domain::Book> BookRepositoryImpl::Load() {
+std::vector<domain::Book> BookRepositoryImpl::Load(const std::string& name) {
     std::vector<domain::Book> result;
     pqxx::read_transaction    r(connection_);
     for (auto& [id, title, authorId, year] : r.query<std::string, std::string, std::string, int>(
@@ -91,6 +105,10 @@ std::vector<domain::Book> BookRepositoryImpl::Load() {
         result.emplace_back(domain::BookId::FromString(id), title, year, domain::AuthorId::FromString(authorId));
     }
     return result;
+}
+
+void BookRepositoryImpl::Delete(const domain::BookId& bookId) {
+    //
 }
 
 std::vector<domain::Book> BookRepositoryImpl::Load(domain::AuthorId aId) {
@@ -134,6 +152,10 @@ Database::Database(pqxx::connection connection) : connection_{std::move(connecti
     // create books table
     work.exec(
         R"( CREATE TABLE IF NOT EXISTS books ( id UUID CONSTRAINT book_id_constraint PRIMARY KEY, title varchar(200) NOT NULL, author_id UUID REFERENCES authors(id) NOT NULL, publication_year integer NOT NULL);)"_zv);
+
+    // create book TAGS  table
+    work.exec(
+        R"( CREATE TABLE IF NOT EXISTS book_tags ( book_id UUID CONSTRAINT book_id_constraint REFERENCES books(id) , tag varchar(30) NOT NULL );)"_zv);
 
     work.commit();
     authors_.Prepare();

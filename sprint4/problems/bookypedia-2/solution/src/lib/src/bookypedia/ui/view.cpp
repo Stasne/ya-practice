@@ -112,7 +112,7 @@ std::optional<detail::AddBookParams> View::GetBookParams(std::istream& cmd_input
 
 std::vector<detail::AuthorInfo> View::GetAuthors() const {
     std::vector<detail::AuthorInfo> dst_autors;
-    auto                            dbauthors = use_cases_.GetAuthors();
+    auto                            dbauthors = use_cases_.GetAuthors("");
     for (const auto& a : dbauthors)
         dst_autors.push_back({a.GetId().ToString(), a.GetName()});
     return dst_autors;
@@ -120,7 +120,7 @@ std::vector<detail::AuthorInfo> View::GetAuthors() const {
 
 std::vector<detail::BookInfo> View::GetBooks() const {
     std::vector<detail::BookInfo> books;
-    auto                          dbbooks = use_cases_.GetBooks();
+    auto                          dbbooks = use_cases_.GetBooks("");
     for (const auto& b : dbbooks)
         books.push_back({b.GetTitle(), b.GetYear()});
     return books;

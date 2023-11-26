@@ -12,8 +12,10 @@ public:
     explicit AuthorRepositoryImpl(pqxx::connection& connection);
 
     void                        Save(const domain::Author& author) override;
-    std::vector<domain::Author> Load() override;
-    void                        Prepare();
+    std::vector<domain::Author> Load(const std::string& name) override;
+    void                        Delete(const domain::AuthorId& authorId) override;
+
+    void Prepare();
 
 private:
     pqxx::connection& connection_;
@@ -24,9 +26,11 @@ public:
     explicit BookRepositoryImpl(pqxx::connection& connection);
 
     void                      Save(const domain::Book& book) override;
-    std::vector<domain::Book> Load() override;
+    std::vector<domain::Book> Load(const std::string& bookPrefix) override;
     std::vector<domain::Book> Load(domain::AuthorId authotId) override;
-    void                      Prepare();
+    void                      Delete(const domain::BookId& bookId) override;
+
+    void Prepare();
 
 private:
     pqxx::connection& connection_;

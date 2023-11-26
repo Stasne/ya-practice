@@ -25,8 +25,9 @@ private:
 
 class IAuthorRepository {
 public:
-    virtual void                Save(const Author& author) = 0;
-    virtual std::vector<Author> Load()                     = 0;
+    virtual void                Save(const Author& author)       = 0;
+    virtual std::vector<Author> Load(const std::string& name)    = 0;
+    virtual void                Delete(const AuthorId& authotId) = 0;
 
 protected:
     ~IAuthorRepository() = default;
