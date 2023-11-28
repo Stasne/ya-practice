@@ -30,7 +30,7 @@ public:
         std::string croppedTarget = req.target();
         auto        stop          = croppedTarget.find('?');
         if (stop != std::string::npos)
-            croppedTarget = (croppedTarget.substr(stop + 1));
+            croppedTarget = (croppedTarget.substr(0, stop));
 
         if (boost::starts_with(croppedTarget, Endpoint::MAPS))  //map request
         {
@@ -58,6 +58,7 @@ private:
     StringResponse GetGameState(const Token& token, std::string_view body) const;
     StringResponse PostPlayerAction(const Token& token, std::string_view body) const;
     StringResponse PostExternalTick(std::string_view body) const;
+    StringResponse GetHighScores(std::string_view body) const;
 
 private:
     model::Game&                                            game_;

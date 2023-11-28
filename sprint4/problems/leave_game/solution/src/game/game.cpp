@@ -40,7 +40,8 @@ spGameSession Game::StartGame(const Map& map, std::string_view name, std::option
                                                   .bagCapacity                = bagCapacity,
                                                   .randomSpawnPoint           = randomSpawn_,
                                                   .randomGeneratorPeriod      = randomGeneratorPeriod_,
-                                                  .randomGeneratorProbability = randomGeneratorProbability_};
+                                                  .randomGeneratorProbability = randomGeneratorProbability_,
+                                                  .afkKickTimeout_ms = static_cast<uint32_t>(afkKickTimeout_ * 1000)};
     collision_detector::CollisionPrameters collisionParams{
         .dogWidth = defaults::DOG_WIDTH, .officeWidth = defaults::OFFICE_WIDTH, .itemWidth = defaults::ITEM_WIDTH};
     auto session = std::make_shared<GameSession>(std::move(config), std::move(collisionParams), id);

@@ -19,6 +19,7 @@ struct SessionConfiguration {
     const bool        randomSpawnPoint;
     const uint32_t    randomGeneratorPeriod;
     const double      randomGeneratorProbability;
+    const uint32_t    afkKickTimeout_ms;
 };
 
 struct BagSlot {
@@ -26,8 +27,9 @@ struct BagSlot {
     uint32_t type;
     auto     operator<=>(const BagSlot&) const = default;
 };
-
-using Bag = std::vector<BagSlot>;
+using GameTimePeriod    = std::chrono::milliseconds;
+using GameJoinTimestamp = std::chrono::time_point<std::chrono::high_resolution_clock>;
+using Bag               = std::vector<BagSlot>;
 struct PlayingUnit {
     spDog    dog;
     Bag      bag;
@@ -35,6 +37,9 @@ struct PlayingUnit {
     bool     operator==(const PlayingUnit& rhs) const {
         return bag == rhs.bag && dog->Id() == rhs.dog->Id() && score == rhs.score;
     }
+    GameTimePeriod    afk_time{0};
+    GameJoinTimestamp game_start;
+    GameTimePeriod    play_time{0};
 };
 
 class GameSession {
@@ -48,6 +53,7 @@ public:
     const model::Map& GetMap() const { return map_; }
 
     void AddDog(const spDog doge);
+    void RemoveDog(uint32_t dogId);
     void DogAction(uint32_t dogId, DogDirection action);
 
     using LootPositions = std::unordered_map<uint32_t, model::MapLoot>;
@@ -55,8 +61,8 @@ public:
 
     using Players = std::unordered_map<uint32_t, PlayingUnit>;
     const Players& GetPlayers() const { return players_; }
-
-    void UpdateState(uint32_t tick_ms);
+    Players&&      GetLeftPlayers() { return std::move(leftPlayers_); }
+    void           UpdateState(GameTimePeriod tick_ms);
 
     void RestorePlayerLoot(uint32_t id, Bag bag, uint32_t score) {
         if (!players_.count(id))
@@ -81,15 +87,17 @@ public:
     }
 
 private:
-    void UpdateDogsPosition(uint32_t tick_ms);
-    void SpawnLoot(uint32_t tick_ms);
+    void UpdateDogsPosition(GameTimePeriod tick_ms);
+    void SpawnLoot(GameTimePeriod tick_ms);
     void UpdateGatherersPositions();
     void UpdateGatheringItems();
     void ProcessCollisions();
+    void CheckAfkPlayers(GameTimePeriod ticks);
 
 private:
     uint32_t                               id_;
     Players                                players_;
+    Players                                leftPlayers_;  // afk timeout/kicked/left game
     std::string                            name_;
     const model::Map&                      map_;
     const double                           speed_;
@@ -99,6 +107,7 @@ private:
     LootPositions                          lootPositions_;
     collision_detector::ItemsCollider      collider_;
     collision_detector::CollisionPrameters colliderParams_;
+    GameTimePeriod                         afkKickTimeout_;
 };
 
 using spGameSession = std::shared_ptr<GameSession>;

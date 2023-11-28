@@ -14,7 +14,7 @@ public:
     using Handler = std::function<void(std::chrono::milliseconds delta)>;
 
     // Функция handler будет вызываться внутри strand с интервалом period
-    Ticker(Strand strand, std::chrono::milliseconds period, Handler handler)
+    Ticker(Strand& strand, std::chrono::milliseconds period, Handler handler)
         : strand_{strand}, period_{period}, handler_{std::move(handler)} {}
 
     void Start() {
@@ -48,7 +48,7 @@ private:
 
     using Clock = std::chrono::steady_clock;
 
-    Strand                                strand_;
+    Strand&                               strand_;
     std::chrono::milliseconds             period_;
     net::steady_timer                     timer_{strand_};
     Handler                               handler_;

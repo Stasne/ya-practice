@@ -21,13 +21,66 @@ std::string_view ExtractMapName(string_view target) {
 
     return "";
 }
+struct HighscoreListParams {
+    std::optional<int> start;
+    std::optional<int> maxItems;
+};
 
+HighscoreListParams ParseHighscoreListParams(const std::string_view str) {
+    HighscoreListParams params;
+
+    std::string startStr    = "start=";
+    std::string maxItemsStr = "maxItems=";
+
+    size_t startPos    = str.find(startStr);
+    size_t maxItemsPos = str.find(maxItemsStr);
+
+    if (startPos != std::string::npos) {
+        size_t      startValuePos = startPos + startStr.length();
+        size_t      delimiterPos  = str.find('&', startValuePos);
+        std::string startValueStr;
+        if (delimiterPos != std::string::npos) {
+            startValueStr = str.substr(startValuePos, delimiterPos - startValuePos);
+        } else {
+            startValueStr = str.substr(startValuePos);
+        }
+
+        try {
+            params.start = std::stoi(startValueStr);
+        } catch (const std::exception& e) {
+            // Handle exception if needed
+        }
+    }
+
+    if (maxItemsPos != std::string::npos) {
+        size_t      maxItemsValuePos = maxItemsPos + maxItemsStr.length();
+        size_t      delimiterPos     = str.find('&', maxItemsValuePos);
+        std::string maxItemsValueStr;
+        if (delimiterPos != std::string::npos) {
+            maxItemsValueStr = str.substr(maxItemsValuePos, delimiterPos - maxItemsValuePos);
+        } else {
+            maxItemsValueStr = str.substr(maxItemsValuePos);
+        }
+
+        try {
+            params.maxItems = std::stoi(maxItemsValueStr);
+        } catch (const std::exception& e) {
+            // Handle exception if needed
+        }
+    }
+
+    return params;
+}
 void RequestHandler::SetupRoutes(bool localMode) {
 
     apiRoutes_[Endpoint::MAPS]
         .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
                            MiscMessage::ALLOWED_GET_HEAD_METHOD)
         .SetProcessFunction(bind(&RequestHandler::GetMap, this, _1));
+    apiRoutes_[Endpoint::HIGHSCORES]
+        .SetAllowedMethods({http::verb::head, http::verb::get}, "Method not allowed"sv,
+                           MiscMessage::ALLOWED_GET_HEAD_METHOD)
+        .SetProcessFunction(bind(&RequestHandler::GetHighScores, this, _1));
 
     apiRoutes_[Endpoint::JOIN_GAME]
         .SetContentType(Response::ContentType::TEXT_JSON, "Wrong content type"sv)
@@ -177,6 +230,24 @@ StringResponse RequestHandler::GetGameState(const Token& token, std::string_view
     jFinal["players"]     = jObjectPlayers;
     jFinal["lostObjects"] = jObjectLoot;
     return Response::Make(http::status::ok, boost::json::serialize(boost::json::value(jFinal)), content_type);
+}
+
+StringResponse RequestHandler::GetHighScores(std::string_view body) const {
+    auto params     = ParseHighscoreListParams(body);
+    auto highscores = game_.GetHighScoreHandler()->LoadHighScores(params.maxItems ? *params.maxItems : 100,
+                                                                  params.start ? *params.start : 0, "");
+
+    boost::json::array objectsArray;
+    for (const auto& unit : highscores) {
+        boost::json::object row;
+        row["name"]     = unit.player;
+        row["score"]    = unit.score;
+        row["playTime"] = unit.playTime_s;
+        objectsArray.push_back(row);
+    }
+
+    auto content_type = std::string(http_handler::Response::ContentType::TEXT_JSON);
+    return Response::Make(http::status::ok, boost::json::serialize(boost::json::value(objectsArray)), content_type);
 }
 
 StringResponse RequestHandler::PostPlayerAction(const Token& token, std::string_view body) const {

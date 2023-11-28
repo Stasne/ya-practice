@@ -40,7 +40,9 @@ bool IsTokenCorrect(const Token& token) {
 }
 
 bool IsTokenValid(const Token& token) {
-    return ValidTokens.count(*token);
+    if (ValidTokens.count(*token))
+        return IsAlive(token);
+    return false;
 }
 
 bool IsAlive(const Token& token) {

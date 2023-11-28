@@ -1,14 +1,16 @@
 #include <game_saver.h>
+
 #include <json_loader.h>
 #include <logger.h>
 #include <logger_request_handler.h>
 #include <magic_defs.h>
+#include <postgres.h>
 #include <request_handler.h>
 #include <sdk.h>
 #include <ticker.h>
-#include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/program_options.hpp>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -139,11 +141,22 @@ int main(int argc, const char* argv[]) {
         GameSaver saver(game, args->state_file, autosave_period);
         game.AddListener(&saver);
 
+        // 5.2 Highscores DB (postgres) provide
+        constexpr auto DB_URL_ENV_NAME = "GAME_DB_URL";
+        std::string    connectionString{};
+        if (const auto* connectionVariable = std::getenv(DB_URL_ENV_NAME); !connectionVariable)
+            throw std::runtime_error(std::string(DB_URL_ENV_NAME) + " environment variable not found");
+        else
+            connectionString = connectionVariable;
+
+        postgres::Database db{pqxx::connection(connectionString), pqxx::connection(connectionString)};
+
+        auto highscorer = std::make_shared<Highscorer>(api_strand, db.GetHighScoresHandler());
+        game.SetHighScoreHandler(highscorer);
         // 6. Запускаем обработку асинхронных операций
         RunWorkers(std::max(1u, num_threads), [&ioc] { ioc.run(); });
         boost::json::value finish_data{{"code", EXIT_SUCCESS}};
         Logger::Log(finish_data, "server exited"sv);
-
     } catch (const std::exception& ex) {
         boost::json::value exception_data{{"code", EXIT_FAILURE}, {"exception", ex.what()}};
         Logger::Log(exception_data, "server exited"sv);

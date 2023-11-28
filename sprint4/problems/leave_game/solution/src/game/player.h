@@ -30,6 +30,7 @@ public:
             return false;
         return id_ == rhs.id_ && name_ == rhs.name_ && *token_ == *rhs.token_ && *dog_ == *rhs.dog_;
     }
+    const Token& TokenView() const { return *token_; }
 
 private:
     uint32_t    id_;

@@ -62,6 +62,7 @@ class ItemsCollider {
 public:
     ~ItemsCollider() = default;
     void              AddGatherer(Gatherer gatherer) { gatherers_[gatherer.ingame_id] = gatherer; };
+    void              RemoveGatherer(uint32_t gatherer_id) { gatherers_.erase(gatherer_id); };
     void              AddDropOffice(DropOffice dropoff) { drops_[dropoff.ingame_id] = dropoff; }
     void              AddItem(Item item) { items_[item.ingame_id] = item; }
     void              RemoveItem(uint32_t ingame_id) { items_.erase(ingame_id); }
