@@ -16,8 +16,7 @@ constexpr auto update_highscore = "update_highscore"_zv;
 
 namespace prepared_query {
 constexpr auto show_highscores =
-    R"(SELECT name, score, playtime FROM retired_players ORDER BY score DESC, playtime ASC, name ASC;)"_zv;
-
+    R"(SELECT name, score, playtime FROM retired_players  ORDER BY score DESC, playtime ASC, name ASC  LIMIT $1 OFFSET $2;)"_zv;
 constexpr auto update_highscore =
     R"(INSERT INTO retired_players (name, score, playtime) VALUES ($1, $2, $3) ON CONFLICT (name) DO UPDATE SET score=$2, playtime=$3;)"_zv;
 }  // namespace prepared_query
@@ -43,10 +42,18 @@ std::vector<game::GameResult> HighscoreRepositoryImpl::LoadResults(uint32_t coun
     std::vector<game::GameResult> result;
     pqxx::read_transaction        r(read_connection_);
 
-    for (auto& [name, score, time] : r.query<std::string, int, double>(
-             "SELECT name, score, playtime FROM retired_players ORDER BY score DESC, playtime ASC, name ASC;")) {
+    auto res = r.exec_prepared(prepared_tag::show_highscores, count, offset);
+
+    for (const auto& row : res) {
+        // TODO:
+        // а тут тоже только так? пол часа изголялся - красиво не смог (
+        // Генерировать строку, где подставить 'WHERE author=___' не круто
+        auto name  = row[0].as<std::string>();
+        auto score = row[1].as<int>();
+        auto time  = row[2].as<double>();
         result.emplace_back(name, score, time);
     }
+
     return result;
 }
 
