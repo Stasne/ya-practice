@@ -18,7 +18,7 @@ namespace prepared_query {
 constexpr auto show_highscores =
     R"(SELECT name, score, playtime FROM retired_players  ORDER BY score DESC, playtime ASC, name ASC  LIMIT $1 OFFSET $2;)"_zv;
 constexpr auto update_highscore =
-    R"(INSERT INTO retired_players (name, score, playtime) VALUES ($1, $2, $3) ON CONFLICT (name) DO UPDATE SET score=$2, playtime=$3;)"_zv;
+    R"(INSERT INTO retired_players (name, score, playtime) VALUES ($1, $2, $3);)"_zv;  // ON CONFLICT (name) DO UPDATE SET score=$2, playtime=$3;)"_zv;
 }  // namespace prepared_query
 
 /*
@@ -69,7 +69,7 @@ Database::Database(pqxx::connection write, pqxx::connection read)
     // create highscores table
 
     work.exec(
-        R"( CREATE TABLE IF NOT EXISTS retired_players ( id SERIAL, name varchar(50) PRIMARY KEY, score INTEGER DEFAULT 0, playTime real NOT NULL );)"_zv);
+        R"( CREATE TABLE IF NOT EXISTS retired_players ( id SERIAL PRIMARY KEY, name varchar(50) , score INTEGER DEFAULT 0, playTime real NOT NULL );)"_zv);
     work.commit();
 
     highscores_.Prepare();
