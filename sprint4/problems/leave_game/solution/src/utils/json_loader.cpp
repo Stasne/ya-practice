@@ -61,6 +61,12 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
 
     auto speed = jobj["defaultDogSpeed"].as_double();
     game.SetDefaultDogSpeed(speed);
+
+    if (jobj.contains("dogRetirementTime")) {
+        auto afkTimeout = jobj["dogRetirementTime"].as_double();
+        game.SetDogAfkTimeout(afkTimeout);
+    }
+
     const auto [period, probability] = extractLootGeneratorParameters(jobj);
     game.SetRandomGeneratorConfig(period, probability);
 

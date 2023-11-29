@@ -90,7 +90,6 @@ private:
                              .score      = unit.score,
                              .playTime_s = unit.play_time.count() / 1000.0};
         highscore_->UpdateHighScore(std::move(highscore));
-        int i = 20;
     };
     void ValidateSessions() {
         // check if session is have to be finished

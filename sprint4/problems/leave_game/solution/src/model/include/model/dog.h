@@ -84,8 +84,8 @@ public:
             SetSpeed(0);
             return;
         }
-
-        dir_ = action;
+        isActive_ = true;
+        dir_      = action;
         SetSpeed(speed);
     }
 

@@ -98,6 +98,7 @@ int main(int argc, const char* argv[]) {
         model::Game game = json_loader::LoadGame(args->config_file);
         game.SetRandomSpawnEnabled(args->random_spawn);
         files::FileServer fileserver(args->www_root_path);
+
         // 2. Инициализируем io_context
         const unsigned  num_threads = std::thread::hardware_concurrency();
         net::io_context ioc(num_threads);
@@ -109,6 +110,7 @@ int main(int argc, const char* argv[]) {
                 ioc.stop();
             }
         });
+
         // 4. Создаём обработчик HTTP-запросов и связываем его с моделью игры
         // strand для выполнения запросов к API
         auto                    api_strand = net::make_strand(ioc);
@@ -153,6 +155,7 @@ int main(int argc, const char* argv[]) {
 
         auto highscorer = std::make_shared<Highscorer>(api_strand, db.GetHighScoresHandler());
         game.SetHighScoreHandler(highscorer);
+
         // 6. Запускаем обработку асинхронных операций
         RunWorkers(std::max(1u, num_threads), [&ioc] { ioc.run(); });
         boost::json::value finish_data{{"code", EXIT_SUCCESS}};

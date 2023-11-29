@@ -1,7 +1,6 @@
 #pragma once
 #include <highscorer.h>
 #include <pqxx/connection>
-// #include <pqxx/pqxx>
 #include <pqxx/transaction>
 
 namespace postgres {

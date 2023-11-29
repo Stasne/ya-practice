@@ -37,9 +37,8 @@ struct PlayingUnit {
     bool     operator==(const PlayingUnit& rhs) const {
         return bag == rhs.bag && dog->Id() == rhs.dog->Id() && score == rhs.score;
     }
-    GameTimePeriod    afk_time{0};
-    GameJoinTimestamp game_start;
-    GameTimePeriod    play_time{0};
+    GameTimePeriod afk_time{0};
+    GameTimePeriod play_time{0};
 };
 
 class GameSession {
@@ -53,7 +52,6 @@ public:
     const model::Map& GetMap() const { return map_; }
 
     void AddDog(const spDog doge);
-    void RemoveDog(uint32_t dogId);
     void DogAction(uint32_t dogId, DogDirection action);
 
     using LootPositions = std::unordered_map<uint32_t, model::MapLoot>;
@@ -87,6 +85,8 @@ public:
     }
 
 private:
+    void MoveDogToLeftPlayers(uint32_t dogId);
+
     void UpdateDogsPosition(GameTimePeriod tick_ms);
     void SpawnLoot(GameTimePeriod tick_ms);
     void UpdateGatherersPositions();

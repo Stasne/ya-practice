@@ -78,7 +78,10 @@ GameSession::GameSession(SessionConfiguration&& config, collision_detector::Coll
 
 void GameSession::AddDog(const spDog doge) {
     players_[doge->Id()] = {
-        .dog = doge, .bag = {}, .score = 0, .game_start = std::chrono::high_resolution_clock::now()};
+        .dog   = doge,
+        .bag   = {},
+        .score = 0,
+    };
 
     auto mapSpawnPoint = GetNextMapPoint(map_, randomSpawn_);
     doge->SetPosition(mapSpawnPoint);
@@ -87,22 +90,17 @@ void GameSession::AddDog(const spDog doge) {
         {.ingame_id = doge->Id(), .start_pos = start_pos, .end_pos = start_pos, .width = colliderParams_.dogWidth});
 }
 
-void GameSession::RemoveDog(uint32_t dogId) {
+void GameSession::MoveDogToLeftPlayers(uint32_t dogId) {
     leftPlayers_[dogId] = players_[dogId];
     collider_.RemoveGatherer(dogId);
-    // smells? YES, it is
-    auto endTimepoint = std::chrono::high_resolution_clock::now();
-    auto start =
-        std::chrono::time_point_cast<GameTimePeriod>(leftPlayers_[dogId].game_start).time_since_epoch().count();
-    auto end      = std::chrono::time_point_cast<GameTimePeriod>(endTimepoint).time_since_epoch().count();
-    auto duration = end - start;
-    leftPlayers_[dogId].play_time = GameTimePeriod(static_cast<uint32_t>(duration));
 }
 
 void GameSession::DogAction(uint32_t dogId, DogDirection action) {
     if (!players_.count(dogId) || !players_[dogId].dog)
         return;
+
     players_[dogId].dog->SetDirection(action, speed_);
+    CheckAfkPlayers(GameTimePeriod(0));
 }
 
 void GameSession::UpdateState(GameTimePeriod tick_ms) {
@@ -183,6 +181,7 @@ void GameSession::SpawnLoot(GameTimePeriod tick_ms) {
 
 void GameSession::CheckAfkPlayers(GameTimePeriod ticks) {
     for (auto& [id, playerCard] : players_) {
+        playerCard.play_time += ticks;
         if (playerCard.dog->IsActive()) {
             playerCard.afk_time = GameTimePeriod(0);
             continue;
@@ -190,10 +189,12 @@ void GameSession::CheckAfkPlayers(GameTimePeriod ticks) {
             playerCard.afk_time += ticks;
 
         if (playerCard.afk_time >= afkKickTimeout_)  // player kick due to afk timeout
-            RemoveDog(id);
+            MoveDogToLeftPlayers(id);
     }
 
-    for (auto& [id, playerCard] : leftPlayers_)
-        players_.erase(id);
+    for (auto& [id, playerCard] : leftPlayers_) {
+        if (players_.count(id))
+            players_.erase(id);
+    }
 }
 }  // namespace game
