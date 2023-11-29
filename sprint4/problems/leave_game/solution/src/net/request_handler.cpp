@@ -14,7 +14,6 @@ namespace http = boost::beast::http;
 namespace http_handler {
 
 std::string_view ExtractMapName(string_view target) {
-
     auto pos = target.find(Endpoint::MAP);
     if (pos != std::string_view::npos)
         return target.substr(pos + Endpoint::MAP.length());
@@ -71,6 +70,7 @@ HighscoreListParams ParseHighscoreListParams(const std::string_view str) {
 
     return params;
 }
+
 void RequestHandler::SetupRoutes(bool localMode) {
 
     apiRoutes_[Endpoint::MAPS]
