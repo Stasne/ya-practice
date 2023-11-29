@@ -235,7 +235,7 @@ StringResponse RequestHandler::GetGameState(const Token& token, std::string_view
 StringResponse RequestHandler::GetHighScores(std::string_view body) const {
     auto params     = ParseHighscoreListParams(body);
     auto highscores = game_.GetHighScoreHandler()->LoadHighScores(params.maxItems ? *params.maxItems : 100,
-                                                                  params.start ? *params.start : 0, "");
+                                                                  params.start ? *params.start : 0);
 
     boost::json::array objectsArray;
     for (const auto& unit : highscores) {

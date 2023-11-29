@@ -12,7 +12,7 @@ public:
 
     void WriteResult(game::GameResult&& result) override;
 
-    std::vector<game::GameResult> LoadResults(uint32_t count, uint32_t offset, std::string_view name = ""s) override;
+    std::vector<game::GameResult> LoadResults(uint32_t count, uint32_t offset) override;
     void                          Prepare();
 
 private:

@@ -16,9 +16,8 @@ struct GameResult {
 
 class IHighscoreRepository {
 public:
-    virtual void                    WriteResult(GameResult&& result)         = 0;
-    virtual std::vector<GameResult> LoadResults(uint32_t count = 100, uint32_t offset = 0,
-                                                std::string_view name = ""s) = 0;
+    virtual void                    WriteResult(GameResult&& result)                       = 0;
+    virtual std::vector<GameResult> LoadResults(uint32_t count = 100, uint32_t offset = 0) = 0;
 };
 
 using ExecutionStrand = net::strand<net::io_context::executor_type>;
@@ -28,16 +27,19 @@ public:
     Highscorer(ExecutionStrand& strand, IHighscoreRepository& repo) : strand_(strand), repository_(repo) {}
 
     void UpdateHighScore(GameResult&& result) {
+        /*
         // TODO: HELP me to figure out why is this doesnt work?
         //    net::post(strand_, [row = std::move(result), &repo = repository_] { repo.WriteResult(std::move(row)); });
         // chat-gpt made next line instead...
         net::post(strand_, [row = std::move(result), repo = std::ref(repository_)]() mutable {
             repo.get().WriteResult(std::move(row));
         });
+        */
+        repository_.WriteResult(std::move(result));
     }
 
-    std::vector<GameResult> LoadHighScores(uint32_t count = 100, uint32_t offset = 0, std::string_view name = ""s) {
-        return repository_.LoadResults(count, offset, name);
+    std::vector<GameResult> LoadHighScores(uint32_t count = 100, uint32_t offset = 0) {
+        return repository_.LoadResults(count, offset);
     };
 
 private:

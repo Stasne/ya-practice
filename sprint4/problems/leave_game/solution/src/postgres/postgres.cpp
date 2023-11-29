@@ -37,8 +37,7 @@ void HighscoreRepositoryImpl::WriteResult(game::GameResult&& result) {
     work.commit();
 }
 
-std::vector<game::GameResult> HighscoreRepositoryImpl::LoadResults(uint32_t count, uint32_t offset,
-                                                                   std::string_view name) {
+std::vector<game::GameResult> HighscoreRepositoryImpl::LoadResults(uint32_t count, uint32_t offset) {
     std::vector<game::GameResult> result;
     pqxx::read_transaction        r(read_connection_);
 

@@ -80,12 +80,12 @@ public:
 
     std::string_view Direction() const { return *dir_; }
     void             SetDirection(game::DogDirection action, double speed = 0) {
+        isActive_ = true;
         if (*action == actions::Stop) {
             SetSpeed(0);
             return;
         }
-        isActive_ = true;
-        dir_      = action;
+        dir_ = action;
         SetSpeed(speed);
     }
 

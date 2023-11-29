@@ -69,8 +69,10 @@ if (BUILD_TESTS)
                     "src/game/*.cpp" "src/game/*.h"
                     "src/net/*.cpp" "src/net/*.h"
                     "src/utils/*.cpp" "src/utils/*.h")
+
     add_executable(game_saver_tests ${TEST_SOURCES_SER})
-    target_include_directories(game_saver_tests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/utils 
+    target_include_directories(game_saver_tests PRIVATE 
+                                                    ${CMAKE_CURRENT_LIST_DIR}/src/utils 
                                                     ${CMAKE_CURRENT_LIST_DIR}/src/net 
                                                     ${CMAKE_CURRENT_LIST_DIR}/src/game)
     target_link_libraries(game_saver_tests PRIVATE 
@@ -78,6 +80,5 @@ if (BUILD_TESTS)
                                                     CONAN_PKG::boost 
                                                     DogsModel 
                                                     collision_detection_lib) 
-
 
 endif(BUILD_TESTS)

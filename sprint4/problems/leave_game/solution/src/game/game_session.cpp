@@ -104,12 +104,12 @@ void GameSession::DogAction(uint32_t dogId, DogDirection action) {
 }
 
 void GameSession::UpdateState(GameTimePeriod tick_ms) {
+    CheckAfkPlayers(tick_ms);
     UpdateDogsPosition(tick_ms);
     UpdateGatherersPositions();
     ProcessCollisions();
     SpawnLoot(tick_ms);
     UpdateGatheringItems();
-    CheckAfkPlayers(tick_ms);
 }
 
 void GameSession::UpdateDogsPosition(GameTimePeriod tick_ms) {
