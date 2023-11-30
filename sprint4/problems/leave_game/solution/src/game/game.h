@@ -91,9 +91,6 @@ private:
                              .playTime_s = unit.play_time.count() / 1000.0};
         highscore_->UpdateHighScore(std::move(highscore));
     };
-    void ValidateSessions() {
-        // check if session is have to be finished
-    }
 
 private:
     using MapIdHasher  = util::TaggedHasher<Map::Id>;

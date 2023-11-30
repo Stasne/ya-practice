@@ -85,11 +85,6 @@ public:
             if (req.method() != http::verb::head && req.method() != http::verb::get)
                 return process_function_without_authorize_(req.body());
 
-            // auto stop = req.target().find('?');
-            // if (stop != std::string::npos) {
-            //     return process_function_without_authorize_(req.target().substr(stop + 1));
-            // }
-
             auto resp = process_function_without_authorize_(req.target());
             return resp;
         }
