@@ -39,6 +39,10 @@ std::ostream& operator<<(std::ostream& out, const BookInfo& book) {
     out << book.title << " by " << book.author_name << ", " << book.publication_year;
     return out;
 }
+std::ostream& PrintAuthorBook(std::ostream& out, const BookInfo& book) {
+    out << book.title << " " << book.publication_year;
+    return out;
+}
 
 }  // namespace detail
 
@@ -47,6 +51,12 @@ void PrintVector(std::ostream& out, const std::vector<T>& vector) {
     int i = 1;
     for (auto& value : vector) {
         out << i++ << " " << value << std::endl;
+    }
+}
+void PrintAuthorBooks(std::ostream& out, const std::vector<detail::BookInfo>& vector) {
+    int i = 1;
+    for (auto& value : vector) {
+        out << i++ << " " << value.title << ", " << value.publication_year << std::endl;
     }
 }
 
@@ -281,7 +291,7 @@ bool View::ShowAuthorBooks() const {
     // TODO: handle error
     try {
         if (auto author = SelectAuthor()) {
-            PrintVector(output_, GetAuthorBooks(author->id));
+            PrintAuthorBooks(output_, GetAuthorBooks(author->id));
         }
     } catch (const std::exception&) {
         throw std::runtime_error("Failed to Show Books");

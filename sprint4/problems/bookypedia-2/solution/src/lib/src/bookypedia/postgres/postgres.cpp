@@ -110,7 +110,7 @@ domain::Books BookRepositoryImpl::GetAllBooks() {
     domain::Books books;
 
     const auto query_text =
-        R"( SELECT books.id, books.title, books.author_id, authors.name, books.publication_year FROM books JOIN authors ON books.author_id = authors.id ORDER BY books.title;)"_zv;
+        R"( SELECT books.id, books.title, books.author_id, authors.name, books.publication_year FROM books JOIN authors ON books.author_id = authors.id ORDER BY books.title ASC, authors.name ASC, books.publication_year ASC ;)"_zv;
 
     for (const auto& [id, title, author_id, author_name, publication_year] :
          work_.query<std::string, std::string, std::string, std::string, int>(query_text)) {
