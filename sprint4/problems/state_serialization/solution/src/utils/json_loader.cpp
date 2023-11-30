@@ -66,8 +66,6 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
 
     if (jobj.contains("defaultBagCapacity"))
         game.SetDefaultBagCapacity(static_cast<uint32_t>(jobj["defaultBagCapacity"].as_int64()));
-    if (jobj.contains("dogRetirementTime"))
-        game.SetDogAfkTimeout(jobj["dogRetirementTime"].as_double());
 
     LoadMaps(jv, game);
 
