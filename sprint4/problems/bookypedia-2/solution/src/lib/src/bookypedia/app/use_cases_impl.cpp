@@ -7,34 +7,66 @@ namespace app {
 using namespace domain;
 
 void UseCasesImpl::AddAuthor(const std::string& name) {
-    authors_.Save({AuthorId::New(), name});
+    auto work = unit_factory_.CreateUnit();
+    work->Authors().Save({AuthorId::New(), name});
+    work->Commit();
 }
 
-void UseCasesImpl::DeleteAuthor(const domain::AuthorId& authorId) {
-    authors_.Delete(authorId);
-}
-void UseCasesImpl::EditAuthor(const domain::Author& edited) {
-    authors_.Save(edited);
-}
-
-std::vector<domain::Author> UseCasesImpl::GetAuthors(const std::string& name) const {
-    return authors_.Load(name);
+void UseCasesImpl::EditAuthorName(const domain::AuthorId& id, const std::string& name) {
+    auto work = unit_factory_.CreateUnit();
+    work->Authors().EditAuthorName(id, name);
+    work->Commit();
 }
 
-void UseCasesImpl::AddBook(const domain::Book& book) {
-    books_.Save(book);
+void UseCasesImpl::DeleteAuthor(const domain::AuthorId& id) {
+    auto work = unit_factory_.CreateUnit();
+    work->Authors().Delete(id);
+    work->Commit();
 }
 
-std::vector<domain::Book> UseCasesImpl::GetBooks(const std::string& name) const {
-    return books_.Load(name);
+std::optional<Author> UseCasesImpl::GetAuthorByName(const std::string& name) {
+    auto work = unit_factory_.CreateUnit();
+    return work->Authors().GetAuthorByName(name);
 }
 
-std::vector<domain::Book> UseCasesImpl::GetAuthorBooks(const std::string& authorId) const {
-    return books_.Load(AuthorId::FromString(authorId));
+Author UseCasesImpl::GetAuthorById(const AuthorId& id) {
+    auto work = unit_factory_.CreateUnit();
+    return work->Authors().GetAuthorById(id);
 }
 
-void UseCasesImpl::DeleteBook(const domain::BookId& bookId) {
-    books_.Delete(bookId);
+void UseCasesImpl::AddBook(const domain::Author& author, const std::string& title, int year, const Tags& tags) {
+    auto work = unit_factory_.CreateUnit();
+    work->Authors().Save(author);
+    auto book = Book(domain::BookId::New(), author.GetId(), title, year, tags);
+    work->Books().Save(book);
+    work->Commit();
+}
+
+void UseCasesImpl::EditBook(const domain::BookId& id, const std::string& title, int year, const domain::Tags& tags) {
+    auto work = unit_factory_.CreateUnit();
+    work->Books().Edit(id, title, year, tags);
+    work->Commit();
+}
+
+void UseCasesImpl::DeleteBook(const domain::BookId& id) {
+    auto work = unit_factory_.CreateUnit();
+    work->Books().Delete(id);
+    work->Commit();
+}
+
+Authors UseCasesImpl::GetAllAuthors() {
+    auto work = unit_factory_.CreateUnit();
+    return work->Authors().GetAllAuthors();
+}
+
+Books UseCasesImpl::GetAllBooks() {
+    auto work = unit_factory_.CreateUnit();
+    return work->Books().GetAllBooks();
+}
+
+Books UseCasesImpl::GetBooksByAuthorId(const AuthorId& id) {
+    auto work = unit_factory_.CreateUnit();
+    return work->Books().GetBooksByAuthorId(id);
 }
 
 }  // namespace app
