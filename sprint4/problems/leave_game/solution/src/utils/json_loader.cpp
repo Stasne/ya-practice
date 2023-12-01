@@ -37,8 +37,12 @@ void LoadMaps(const boost::json::value& jv, model::Game& game) {
         game.AddMap(value_to<Map>(map));
     }
 }
+struct LootGeneratorParams {
+    double period;
+    double probability;
+};
 
-std::tuple<double, double> extractLootGeneratorParameters(boost::json::object& mapObj) {
+LootGeneratorParams extractLootGeneratorParameters(boost::json::object& mapObj) {
     if (!mapObj.contains("lootGeneratorConfig"))
         throw std::runtime_error("No 'lootGeneratorConfig' found in game paramters");
     boost::json::object lootGenConfig = mapObj["lootGeneratorConfig"].as_object();
