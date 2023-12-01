@@ -1,0 +1,115 @@
+#pragma once
+#include <collisions/collision_detector.h>
+#include <model/dog.h>
+#include <model/loot_generator.h>
+
+#include <iostream>
+namespace model {
+class Map;
+class Road;
+}  // namespace model
+
+namespace game {
+
+struct SessionConfiguration {
+    std::string       name;
+    const model::Map& map;
+    const double      speed;
+    const uint32_t    bagCapacity;
+    const bool        randomSpawnPoint;
+    const uint32_t    randomGeneratorPeriod;
+    const double      randomGeneratorProbability;
+    const uint32_t    afkKickTimeout_ms;
+};
+
+struct BagSlot {
+    uint32_t item_id;
+    uint32_t type;
+    auto     operator<=>(const BagSlot&) const = default;
+};
+using GameTimePeriod    = std::chrono::milliseconds;
+using GameJoinTimestamp = std::chrono::time_point<std::chrono::high_resolution_clock>;
+using Bag               = std::vector<BagSlot>;
+struct PlayingUnit {
+    spDog    dog;
+    Bag      bag;
+    uint32_t score{0};
+    bool     operator==(const PlayingUnit& rhs) const {
+        return bag == rhs.bag && dog->Id() == rhs.dog->Id() && score == rhs.score;
+    }
+    GameTimePeriod afk_time{0};
+    GameTimePeriod play_time{0};
+};
+
+class GameSession {
+public:
+    GameSession(SessionConfiguration&& config, collision_detector::CollisionPrameters&& collisionParams,
+                std::optional<uint32_t> id = std::nullopt);
+    GameSession(const GameSession&) = delete;
+    GameSession(GameSession&&)      = delete;
+    std::string_view  GetName() const noexcept { return name_; }
+    uint32_t          GetId() const { return id_; }
+    const model::Map& GetMap() const { return map_; }
+
+    void AddDog(const spDog doge);
+    void DogAction(uint32_t dogId, DogDirection action);
+
+    using LootPositions = std::unordered_map<uint32_t, model::MapLoot>;
+    const LootPositions& GetLoot() const { return lootPositions_; }
+
+    using Players = std::unordered_map<uint32_t, PlayingUnit>;
+    const Players& GetPlayers() const { return players_; }
+    Players&&      GetLeftPlayers() { return std::move(leftPlayers_); }
+    void           UpdateState(GameTimePeriod tick_ms);
+
+    void RestorePlayerLoot(uint32_t id, Bag bag, uint32_t score) {
+        if (!players_.count(id))
+            throw std::runtime_error("Dog restore error: unknown id");
+        players_.at(id).bag   = std::move(bag);
+        players_.at(id).score = score;
+    }
+    void RestoreMapLoot(LootPositions lp) {
+        lootPositions_ = std::move(lp);
+        UpdateGatheringItems();
+    }
+
+    bool operator==(const GameSession& rhs) const {
+        bool baseParams = id_ == rhs.GetId() && map_ == rhs.GetMap() && name_ == rhs.GetName();
+        if (!baseParams)
+            return false;
+        bool p1 = players_ == rhs.players_ && speed_ == rhs.speed_ && map_ == rhs.map_;
+        bool p2 = bagCapacity_ == rhs.bagCapacity_ && randomSpawn_ == rhs.randomSpawn_;
+        bool p3 = lootPositions_ == rhs.lootPositions_ && colliderParams_ == rhs.colliderParams_;
+        bool p4 = collider_ == rhs.collider_;
+        return p1 && p2 && p3 && p4;
+    }
+
+private:
+    void MoveDogToLeftPlayers(uint32_t dogId);
+
+    void UpdateDogsPosition(GameTimePeriod tick_ms);
+    void SpawnLoot(GameTimePeriod tick_ms);
+    void UpdateGatherersPositions();
+    void UpdateGatheringItems();
+    void ProcessCollisions();
+    void CheckAfkPlayers(GameTimePeriod ticks);
+
+private:
+    uint32_t                               id_;
+    Players                                players_;
+    Players                                leftPlayers_;  // afk timeout/kicked/left game
+    std::string                            name_;
+    const model::Map&                      map_;
+    const double                           speed_;
+    const uint32_t                         bagCapacity_;
+    const bool                             randomSpawn_;
+    loot_gen::LootGenerator                lootGen_;
+    LootPositions                          lootPositions_;
+    collision_detector::ItemsCollider      collider_;
+    collision_detector::CollisionPrameters colliderParams_;
+    GameTimePeriod                         afkKickTimeout_;
+};
+
+using spGameSession = std::shared_ptr<GameSession>;
+
+}  // namespace game
